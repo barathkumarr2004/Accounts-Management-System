@@ -12,16 +12,9 @@ import {
 export default function GroupForm() {
   const dispatch = useDispatch();
 
-  const {
-    groups,
-    loading,
-    error,
-  } = useSelector((state) => state.groups);
+  const {groups,loading, error,} = useSelector((state) => state.groups);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    parent_id: "",
-  });
+  const [formData, setFormData] = useState({ name: "", parent_id: "",});
 
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -39,7 +32,7 @@ export default function GroupForm() {
       [name]: value,
     }));
 
-    // Remove old error when user starts correcting the form
+    // Remove old errors
     if (error) {
       dispatch(clearGroupError());
     }
@@ -56,7 +49,6 @@ export default function GroupForm() {
     try {
       await dispatch(createGroup(formData)).unwrap();
 
-      // Show success message
       setSuccessMessage("Group created successfully");
 
       // Clear form
@@ -65,13 +57,13 @@ export default function GroupForm() {
         parent_id: "",
       });
 
-      // Hide success message after 3 seconds
+      // Hide success message 
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
 
     } catch (error) {
-      // Redux error will be shown automatically
+      // Redux errors
       console.error("Create group error:", error);
     }
   };
@@ -89,17 +81,12 @@ export default function GroupForm() {
 
   return (
     <div className="card shadow-sm">
-
       <div className="card-header bg-white">
-        <h5 className="mb-0">
-          Create Group
-        </h5>
+        <h5 className="mb-0">Create Group</h5>
       </div>
 
       <div className="card-body">
-
         {/* SUCCESS MESSAGE */}
-
         {successMessage && (
           <div
             className="alert alert-success alert-dismissible fade show"
@@ -110,7 +97,6 @@ export default function GroupForm() {
         )}
 
         {/* ERROR MESSAGE */}
-
         {error && (
           <div
             className="alert alert-danger"
@@ -121,15 +107,9 @@ export default function GroupForm() {
         )}
 
         <form onSubmit={handleSubmit}>
-
           {/* GROUP NAME */}
-
           <div className="mb-3">
-
-            <label
-              htmlFor="name"
-              className="form-label"
-            >
+            <label htmlFor="name" className="form-label">
               Group Name
             </label>
 
@@ -143,17 +123,11 @@ export default function GroupForm() {
               onChange={handleChange}
               required
             />
-
           </div>
 
           {/* UNDER */}
-
           <div className="mb-3">
-
-            <label
-              htmlFor="parent_id"
-              className="form-label"
-            >
+            <label htmlFor="parent_id" className="form-label">
               Under
             </label>
 
@@ -164,7 +138,6 @@ export default function GroupForm() {
               value={formData.parent_id}
               onChange={handleChange}
             >
-
               <option value="">
                 Primary
               </option>
@@ -177,13 +150,10 @@ export default function GroupForm() {
                   {group.name}
                 </option>
               ))}
-
             </select>
-
           </div>
 
           <div className="d-flex justify-content-end gap-2">
-
             <button
               type="button"
               className="btn btn-secondary"
@@ -199,11 +169,8 @@ export default function GroupForm() {
             >
               {loading ? "Saving..." : "Save"}
             </button>
-
           </div>
-
         </form>
-
       </div>
     </div>
   );

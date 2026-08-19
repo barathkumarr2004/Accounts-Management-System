@@ -12,7 +12,7 @@ export default function Sidebar() {
       path: "/dashboard",
     },
      {
-      name: "ChartsOfAccounts",
+      name: "ChartOfAccounts",
       path: "/chartsofaccounts",
     },
     {

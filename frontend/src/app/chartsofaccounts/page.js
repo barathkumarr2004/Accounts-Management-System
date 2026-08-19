@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useGetChartOfAccountsQuery } from "@/app/store/api/chartOfAccountsApi";
 
 const TreeNode = ({ node, level = 0 }) => {
-  const [isOpen, setIsOpen] = useState(level < 1); 
+  const [isOpen, setIsOpen] = useState(false); // 👈 idhu dhan change. Start la ellam close
   const hasChildren = node.children && node.children.length > 0;
 
   return (
@@ -25,7 +25,7 @@ const TreeNode = ({ node, level = 0 }) => {
         </span>
       </div>
 
-      {isOpen && hasChildren && (
+      {isOpen && hasChildren && ( // 👈 idhu open ah irundha mattum dhan children kaatum
         <div>
           {node.children.map((child) => (
             <TreeNode key={`${child.type}-${child.id}`} node={child} level={level + 1} />
@@ -46,7 +46,6 @@ export default function ChartOfAccountsPage() {
     <div className="p-3 bg-white min-vh-100" style={{fontFamily: 'monospace'}}>
       <div className="border-bottom pb-2 mb-3 d-flex justify-content-between">
         <h4 className="mb-0">CHART OF ACCOUNTS</h4>
-        {/* <small className="text-muted">[F12: Configure] [Alt+S: Search]</small> */}
       </div>
 
       <div>

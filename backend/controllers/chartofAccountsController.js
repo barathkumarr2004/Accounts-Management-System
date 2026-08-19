@@ -1,4 +1,4 @@
-const { getChartOfAccounts } = require('../models/chartOfAccountsModel');
+const { getChartOfAccounts } = require('../models/chartofAccountsModel');
 
 const getCOA = async (req, res) => {
   try {

@@ -4,15 +4,53 @@ import {
 } from "@reduxjs/toolkit";
 
 import {
+  getLedgers,
   createLedgerApi,
 } from "../api/ledgerApi";
 
 
 const initialState = {
+
   ledgers: [],
+
   loading: false,
+
   error: null,
+
 };
+
+
+/*
+|--------------------------------------------------------------------------
+| Fetch Ledgers
+|--------------------------------------------------------------------------
+*/
+
+export const fetchLedgers = createAsyncThunk(
+
+  "ledgers/fetchLedgers",
+
+  async (_, { rejectWithValue }) => {
+
+    try {
+
+      const result =
+        await getLedgers();
+
+      return result;
+
+    } catch (error) {
+
+      return rejectWithValue(
+        error.message ||
+        "Unable to load ledgers"
+      );
+
+    }
+
+  }
+
+);
 
 
 /*
@@ -22,31 +60,31 @@ const initialState = {
 */
 
 export const createLedger = createAsyncThunk(
+
   "ledgers/createLedger",
 
   async (data, { rejectWithValue }) => {
+
     try {
 
-      const result = await createLedgerApi(data);
+      const result =
+        await createLedgerApi(data);
 
       return result;
 
     } catch (error) {
 
       return rejectWithValue(
-        error.message || "Unable to create ledger"
+        error.message ||
+        "Unable to create ledger"
       );
 
     }
+
   }
+
 );
 
-
-/*
-|--------------------------------------------------------------------------
-| Ledger Slice
-|--------------------------------------------------------------------------
-*/
 
 const ledgerSlice = createSlice({
 
@@ -56,14 +94,16 @@ const ledgerSlice = createSlice({
 
   reducers: {
 
-    // Clear error message
     clearLedgerError: (state) => {
+
       state.error = null;
+
     },
 
-    // Set manual error
     setLedgerError: (state, action) => {
+
       state.error = action.payload;
+
     },
 
   },
@@ -71,83 +111,104 @@ const ledgerSlice = createSlice({
 
   extraReducers: (builder) => {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Create Ledger - Loading
-    |--------------------------------------------------------------------------
-    */
-
-    builder.addCase(
-      createLedger.pending,
-      (state) => {
-
-        state.loading = true;
-        state.error = null;
-
-      }
-    );
-
 
     /*
     |--------------------------------------------------------------------------
-    | Create Ledger - Success
+    | Fetch
     |--------------------------------------------------------------------------
     */
 
-    builder.addCase(
-      createLedger.fulfilled,
-      (state, action) => {
+    builder
 
-        state.loading = false;
-        state.error = null;
+      .addCase(
+        fetchLedgers.pending,
+        (state) => {
 
-        // Add newly created ledger
-        state.ledgers.push(action.payload);
+          state.loading = true;
+          state.error = null;
 
-      }
-    );
+        }
+      )
+
+      .addCase(
+        fetchLedgers.fulfilled,
+        (state, action) => {
+
+          state.loading = false;
+
+          state.ledgers =
+            action.payload;
+
+        }
+      )
+
+      .addCase(
+        fetchLedgers.rejected,
+        (state, action) => {
+
+          state.loading = false;
+
+          state.error =
+            action.payload;
+
+        }
+      );
 
 
     /*
     |--------------------------------------------------------------------------
-    | Create Ledger - Error
+    | Create
     |--------------------------------------------------------------------------
     */
 
-    builder.addCase(
-      createLedger.rejected,
-      (state, action) => {
+    builder
 
-        state.loading = false;
+      .addCase(
+        createLedger.pending,
+        (state) => {
 
-        state.error =
-          action.payload ||
-          "Unable to create ledger";
+          state.loading = true;
+          state.error = null;
 
-      }
-    );
+        }
+      )
+
+      .addCase(
+        createLedger.fulfilled,
+        (state, action) => {
+
+          state.loading = false;
+          state.error = null;
+
+          state.ledgers.push(
+            action.payload
+          );
+
+        }
+      )
+
+      .addCase(
+        createLedger.rejected,
+        (state, action) => {
+
+          state.loading = false;
+
+          state.error =
+            action.payload ||
+            "Unable to create ledger";
+
+        }
+      );
 
   },
 
 });
 
 
-/*
-|--------------------------------------------------------------------------
-| Actions
-|--------------------------------------------------------------------------
-*/
-
 export const {
   clearLedgerError,
   setLedgerError,
 } = ledgerSlice.actions;
 
-
-/*
-|--------------------------------------------------------------------------
-| Reducer
-|--------------------------------------------------------------------------
-*/
 
 export default ledgerSlice.reducer;

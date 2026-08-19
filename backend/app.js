@@ -3,6 +3,7 @@ const cors = require("cors");
 
 const groupRoutes = require("./routes/groupRoutes");
 const ledgerRoutes = require("./routes/ledgerRoutes");
+const journalRoutes = require("./routes/journalRoutes");
 
 const app = express();
 
@@ -20,7 +21,9 @@ app.use(
 );
 
 app.use(express.json());
-
+app.use("/api/groups", groupRoutes);
+app.use("/api/ledgers", ledgerRoutes);
+app.use("/api/journals", journalRoutes);
 
 /*
 |--------------------------------------------------------------------------
@@ -50,6 +53,10 @@ app.use(
 app.use(
   "/api/ledgers",
   ledgerRoutes
+);
+app.use(
+  "/api/journals",
+  journalRoutes
 );
 
 

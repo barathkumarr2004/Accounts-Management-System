@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import {
-  fetchGroups,
-  createGroup,
-  clearGroupError,
-} from "../store/slices/groupSlice";
+import {fetchGroups,createGroup,clearGroupError,} from "../store/slices/groupSlice";
 
 export default function GroupForm() {
   const dispatch = useDispatch();
@@ -27,10 +23,7 @@ export default function GroupForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value, }));
 
     // Remove old errors
     if (error) {
@@ -52,10 +45,7 @@ export default function GroupForm() {
       setSuccessMessage("Group created successfully");
 
       // Clear form
-      setFormData({
-        name: "",
-        parent_id: "",
-      });
+      setFormData({name: "", parent_id: "",});
 
       // Hide success message 
       setTimeout(() => {
@@ -70,11 +60,7 @@ export default function GroupForm() {
 
   // Cancel
   const handleCancel = () => {
-    setFormData({
-      name: "",
-      parent_id: "",
-    });
-
+    setFormData({name: "", parent_id: "",});
     setSuccessMessage("");
     dispatch(clearGroupError());
   };
@@ -88,20 +74,14 @@ export default function GroupForm() {
       <div className="card-body">
         {/* SUCCESS MESSAGE */}
         {successMessage && (
-          <div
-            className="alert alert-success alert-dismissible fade show"
-            role="alert"
-          >
+          <div className="alert alert-success alert-dismissible fade show" role="alert" >
             {successMessage}
           </div>
         )}
 
         {/* ERROR MESSAGE */}
         {error && (
-          <div
-            className="alert alert-danger"
-            role="alert"
-          >
+          <div className="alert alert-danger" role="alert"  >
             {error}
           </div>
         )}

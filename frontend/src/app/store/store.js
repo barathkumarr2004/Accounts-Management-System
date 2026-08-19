@@ -2,15 +2,22 @@ import { configureStore } from "@reduxjs/toolkit";
 
 import groupReducer from "./slices/groupSlice";
 import ledgerReducer from "./slices/ledgerSlice";
-import { chartOfAccountsApi } from "./api/chartOfAccountsApi";
+import journalReducer from "./slices/journalSlice";
+
 
 const store = configureStore({
+
   reducer: {
+
     groups: groupReducer,
+
     ledgers: ledgerReducer,
-    [chartOfAccountsApi.reducerPath] : chartOfAccountsApi.reducer,
+
+    journals: journalReducer,
+
   },
-  middleware:(getDefaultMiddleware) => getDefaultMiddleware().concat(chartOfAccountsApi.middleware),
+
 });
+
 
 export default store;

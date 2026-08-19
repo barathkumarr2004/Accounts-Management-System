@@ -3,12 +3,21 @@ const cors = require("cors");
 
 const groupRoutes = require("./routes/groupRoutes");
 const ledgerRoutes = require("./routes/ledgerRoutes");
-const chartOfAccountsRoutes = require('./routes/chartofAccountsRoutes'); // mela eduthutu vanthuten
+const journalRoutes = require("./routes/journalRoutes");
 
 const app = express();
 
 app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.json());
+app.use("/api/groups", groupRoutes);
+app.use("/api/ledgers", ledgerRoutes);
+app.use("/api/journals", journalRoutes);
+
+/*
+|--------------------------------------------------------------------------
+| Test
+|--------------------------------------------------------------------------
+*/
 
 app.get("/", (req, res) => {
   res.status(200).json({ success: true, message: "Accounts Management API is running" });
@@ -28,6 +37,28 @@ app.use("/api/chartsofaccounts", chartOfAccountsRoutes); // idha inge vechuten
 | 404 - LAST LA DHAN IRUKANUM
 |--------------------------------------------------------------------------
 */
+
+app.use(
+  "/api/groups",
+  groupRoutes
+);
+
+app.use(
+  "/api/ledgers",
+  ledgerRoutes
+);
+app.use(
+  "/api/journals",
+  journalRoutes
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 404
+|--------------------------------------------------------------------------
+*/
+
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "API route not found" });
 });

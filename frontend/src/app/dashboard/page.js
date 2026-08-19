@@ -1,7 +1,12 @@
-// 'use client';
+'use client'; // date client la dhan calculate aaganum
+
 import Link from 'next/link';
 
 export default function Dashboard() {
+  const today = new Date();
+  const options = { day: '2-digit', month: 'short', year: 'numeric' };
+  const formattedDate = today.toLocaleDateString('en-GB', options).replace(/ /g, '-'); 
+  
   const menuItems = [
     { name: 'Chart of Accounts', desc: 'View all Natures, Groups & Ledgers', link: '/chartsofaccounts', icon: 'bi-bar-chart-fill' },
     { name: 'Groups', desc: 'Create & Manage Groups', link: '/groups', icon: 'bi-folder-fill' },
@@ -22,7 +27,7 @@ export default function Dashboard() {
               href={item.link} 
               className="text-decoration-none text-dark"
             >
-              <div className="card h-100 shadow-sm border transition hover:-translate-y-1"> {/* 👈 hover direct ah inga */}
+              <div className="card h-100 shadow-sm border transition hover:-translate-y-1 hover:shadow-lg">
                 <div className="card-body d-flex align-items-center gap-3">
                   <i className={`bi ${item.icon} fs-2 text-primary`}></i>
                   <div>
@@ -36,11 +41,12 @@ export default function Dashboard() {
         ))}
       </div>
 
-        {/* Bottom Info */}
-      <div className="mt-8 bg-white p-4 mt-4 rounded-lg shadow text-center">
-        <p className="text-gray-600">Financial Year: <b>2026-2027</b> | Today: <b>19-Aug-2026</b></p>
+      {/* Bottom Date Card */}
+      <div className="mt-4 bg-white p-4 rounded-lg shadow text-center">
+        <p className="text-gray-600 mb-0">
+          Financial Year: <b>2026-2027</b> | Today: <b>{formattedDate}</b>
+        </p>
       </div>
     </div>
   )
 }
-

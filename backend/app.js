@@ -3,7 +3,7 @@ const cors = require("cors");
 
 const groupRoutes = require("./routes/groupRoutes");
 const ledgerRoutes = require("./routes/ledgerRoutes");
-const chartOfAccountsRoutes = require('./routes/chartOfAccountsRoutes'); // mela eduthutu vanthuten
+const chartOfAccountsRoutes = require('./routes/chartofAccountsRoutes'); // mela eduthutu vanthuten
 
 const app = express();
 

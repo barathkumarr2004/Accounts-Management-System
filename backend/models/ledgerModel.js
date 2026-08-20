@@ -1,12 +1,5 @@
 const db = require("../config/db");
 
-
-/*
-|--------------------------------------------------------------------------
-| Get all ledgers
-|--------------------------------------------------------------------------
-*/
-
 const getAllLedgers = async () => {
   const [rows] = await db.execute(`
     SELECT
@@ -25,16 +18,7 @@ const getAllLedgers = async () => {
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| Check duplicate ledger
-|--------------------------------------------------------------------------
-*/
-
-const findDuplicateLedger = async (
-  name,
-  groupId
-) => {
+const findDuplicateLedger = async (name,groupId) => {
   const [rows] = await db.execute(
     `
     SELECT id
@@ -52,12 +36,6 @@ const findDuplicateLedger = async (
   return rows[0] || null;
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| Generate Ledger Code
-|--------------------------------------------------------------------------
-*/
 
 const getNextLedgerCode = async () => {
   const [rows] = await db.execute(`
@@ -87,12 +65,6 @@ const getNextLedgerCode = async () => {
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| Create Ledger
-|--------------------------------------------------------------------------
-*/
-
 const insertLedger = async ({
   code,
   name,
@@ -118,12 +90,6 @@ const insertLedger = async ({
   return result.insertId;
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| Get created ledger
-|--------------------------------------------------------------------------
-*/
 
 const getCreatedLedger = async (id) => {
   const [rows] = await db.execute(

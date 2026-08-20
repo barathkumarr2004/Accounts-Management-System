@@ -35,14 +35,9 @@ export default function Sidebar() {
 
   return (
     <div
-      className="bg-dark text-white min-vh-100 p-3"
-      style={{ width: "250px" }}
-    >
+      className="bg-dark text-white min-vh-100 p-3"style={{ width: "250px" }}>
       <h4 className="mb-1">Accounts</h4>
-
-      <small className="text-secondary">
-        Management System
-      </small>
+      <small className="text-secondary"> Management System </small>
 
       <div className="mt-4">
         {menuItems.map((item) => (

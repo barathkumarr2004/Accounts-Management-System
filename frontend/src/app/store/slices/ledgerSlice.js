@@ -1,12 +1,5 @@
-import {
-  createAsyncThunk,
-  createSlice,
-} from "@reduxjs/toolkit";
-
-import {
-  createLedgerApi,
-} from "../api/ledgerApi";
-
+import {createAsyncThunk,createSlice,} from "@reduxjs/toolkit";
+import {createLedgerApi,} from "../api/ledgerApi";
 
 const initialState = {
   ledgers: [],
@@ -14,48 +7,25 @@ const initialState = {
   error: null,
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| Create Ledger
-|--------------------------------------------------------------------------
-*/
-
-export const createLedger = createAsyncThunk(
-  "ledgers/createLedger",
-
-  async (data, { rejectWithValue }) => {
+//create ledger
+export const createLedger = createAsyncThunk("ledgers/createLedger",async (data, { rejectWithValue }) => {
     try {
-
       const result = await createLedgerApi(data);
-
       return result;
-
-    } catch (error) {
-
-      return rejectWithValue(
-        error.message || "Unable to create ledger"
-      );
-
+    } 
+    catch (error) {
+      return rejectWithValue(error.message || "Unable to create ledger");
     }
   }
 );
 
-
-/*
-|--------------------------------------------------------------------------
-| Ledger Slice
-|--------------------------------------------------------------------------
-*/
-
+//ledger slice
 const ledgerSlice = createSlice({
-
   name: "ledgers",
 
   initialState,
 
   reducers: {
-
     // Clear error message
     clearLedgerError: (state) => {
       state.error = null;
@@ -68,62 +38,24 @@ const ledgerSlice = createSlice({
 
   },
 
-
   extraReducers: (builder) => {
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create Ledger - Loading
-    |--------------------------------------------------------------------------
-    */
-
-    builder.addCase(
-      createLedger.pending,
-      (state) => {
-
+//create ledger
+    builder.addCase(createLedger.pending,(state) => {
         state.loading = true;
         state.error = null;
-
       }
     );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create Ledger - Success
-    |--------------------------------------------------------------------------
-    */
-
-    builder.addCase(
-      createLedger.fulfilled,
-      (state, action) => {
-
+    builder.addCase(createLedger.fulfilled,(state, action) => {
         state.loading = false;
         state.error = null;
-
-        // Add newly created ledger
         state.ledgers.push(action.payload);
-
       }
     );
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create Ledger - Error
-    |--------------------------------------------------------------------------
-    */
-
-    builder.addCase(
-      createLedger.rejected,
-      (state, action) => {
-
+    builder.addCase( createLedger.rejected,(state, action) => {
         state.loading = false;
-
-        state.error =
-          action.payload ||
-          "Unable to create ledger";
-
+        state.error = action.payload || "Unable to create ledger";
       }
     );
 
@@ -131,23 +63,7 @@ const ledgerSlice = createSlice({
 
 });
 
+//actions
 
-/*
-|--------------------------------------------------------------------------
-| Actions
-|--------------------------------------------------------------------------
-*/
-
-export const {
-  clearLedgerError,
-  setLedgerError,
-} = ledgerSlice.actions;
-
-
-/*
-|--------------------------------------------------------------------------
-| Reducer
-|--------------------------------------------------------------------------
-*/
-
+export const { clearLedgerError, setLedgerError,} = ledgerSlice.actions;
 export default ledgerSlice.reducer;

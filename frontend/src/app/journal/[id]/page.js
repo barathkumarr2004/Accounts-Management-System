@@ -281,12 +281,6 @@ export default function ViewJournalPage() {
                           {entry.ledger_name || "Unknown Ledger"}
                         </p>
 
-                        {entry.ledger_code && (
-                          <p className="mt-0.5 text-xs text-gray-400">
-                            Code: {entry.ledger_code}
-                          </p>
-                        )}
-
                       </td>
 
                       <td className="border-b border-gray-100 px-4 py-3 text-right">

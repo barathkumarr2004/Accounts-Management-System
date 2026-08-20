@@ -2,575 +2,1447 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 
-import { getLedgers } from "../store/slices/ledgerSlice";
-import { createJournalVoucher } from "../store/slices/journalSlice";
+import {
+  getLedgers,
+} from "../store/slices/ledgerSlice";
 
-const createEmptyEntry = (id) => ({
-  id,
-  ledgerId: "",
-  type: "",
-  amount: "",
-});
-
-const getToday = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
+import {
+  createJournalVoucher,
+  clearJournalError,
+} from "../store/slices/journalSlice";
 
 export default function JournalPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
 
-  const { ledgers = [] } = useSelector(
-    (state) => state.ledgers || {}
+  // =========================================================
+  // REDUX
+  // =========================================================
+
+  const ledgers = useSelector(
+    (state) => state.ledgers?.ledgers || []
   );
 
-  const {
-    loading: journalLoading,
-    error: journalError,
-  } = useSelector((state) => state.journals || {});
+  const journalLoading = useSelector(
+    (state) => state.journals?.loading || false
+  );
+
+  const journalError = useSelector(
+    (state) => state.journals?.error || null
+  );
+
+  // =========================================================
+  // DATE
+  // =========================================================
+
+  const getToday = () => {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  // =========================================================
+  // STATE
+  // =========================================================
 
   const [voucherDate, setVoucherDate] = useState(getToday());
-  const [narration, setNarration] = useState("");
-  const [entries, setEntries] = useState([
-    createEmptyEntry(1),
-    createEmptyEntry(2),
-  ]);
-  const [successMessage, setSuccessMessage] = useState("");
 
-  const voucherNumber = "JV-00007";
+  const [voucherNumber, setVoucherNumber] =
+    useState("JV-00001");
+
+  const [narration, setNarration] = useState("");
+
+  const [rows, setRows] = useState([
+    {
+      id: 1,
+      ledgerId: "",
+      type: "",
+      debit: "",
+      credit: "",
+    },
+    {
+      id: 2,
+      ledgerId: "",
+      type: "",
+      debit: "",
+      credit: "",
+    },
+  ]);
+
+  const [successMessage, setSuccessMessage] =
+    useState("");
+
+  // =========================================================
+  // LOAD LEDGERS
+  // =========================================================
 
   useEffect(() => {
     dispatch(getLedgers());
   }, [dispatch]);
 
+  // =========================================================
+  // CLEAR ERROR
+  // =========================================================
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearJournalError());
+    };
+  }, [dispatch]);
+
+  // =========================================================
+  // GENERATE PREVIEW VOUCHER NUMBER
+  // =========================================================
+
+  useEffect(() => {
+    try {
+      const journals =
+        JSON.parse(
+          localStorage.getItem("journalVouchers") || "[]"
+        );
+
+      if (journals.length > 0) {
+        const numbers = journals
+          .map((item) => {
+            const value = String(
+              item.voucher_number || ""
+            ).replace("JV-", "");
+
+            return Number(value);
+          })
+          .filter((number) => !Number.isNaN(number));
+
+        if (numbers.length > 0) {
+          const maxNumber = Math.max(...numbers);
+
+          setVoucherNumber(
+            `JV-${String(maxNumber + 1).padStart(5, "0")}`
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Voucher number preview error:",
+        error
+      );
+    }
+  }, []);
+
+  // =========================================================
+  // TOTAL DEBIT
+  // =========================================================
+
   const totalDebit = useMemo(() => {
-    return entries.reduce((total, entry) => {
-      return entry.type === "debit"
-        ? total + Number(entry.amount || 0)
-        : total;
-    }, 0);
-  }, [entries]);
+    return rows.reduce(
+      (total, row) =>
+        total + Number(row.debit || 0),
+      0
+    );
+  }, [rows]);
+
+  // =========================================================
+  // TOTAL CREDIT
+  // =========================================================
 
   const totalCredit = useMemo(() => {
-    return entries.reduce((total, entry) => {
-      return entry.type === "credit"
-        ? total + Number(entry.amount || 0)
-        : total;
-    }, 0);
-  }, [entries]);
+    return rows.reduce(
+      (total, row) =>
+        total + Number(row.credit || 0),
+      0
+    );
+  }, [rows]);
 
-  const difference = Math.abs(totalDebit - totalCredit);
+  // =========================================================
+  // DIFFERENCE
+  // =========================================================
+
+  const difference = Math.abs(
+    totalDebit - totalCredit
+  );
+
+  // =========================================================
+  // BALANCED
+  // =========================================================
 
   const isBalanced =
     totalDebit > 0 &&
     totalCredit > 0 &&
-    totalDebit === totalCredit;
+    Math.abs(totalDebit - totalCredit) < 0.001;
 
-  const updateEntry = (id, field, value) => {
-    setEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        entry.id === id
-          ? {
-              ...entry,
-              [field]: value,
-            }
-          : entry
+  // =========================================================
+  // UPDATE ROW
+  // =========================================================
+
+  const updateRow = (id, field, value) => {
+    setRows((currentRows) =>
+      currentRows.map((row) => {
+        if (row.id !== id) {
+          return row;
+        }
+
+        // -----------------------------------------------
+        // TYPE
+        // -----------------------------------------------
+
+        if (field === "type") {
+          if (value === "By") {
+            return {
+              ...row,
+              type: value,
+              debit: row.debit || "",
+              credit: "",
+            };
+          }
+
+          if (value === "To") {
+            return {
+              ...row,
+              type: value,
+              debit: "",
+              credit: row.credit || "",
+            };
+          }
+
+          return {
+            ...row,
+            type: value,
+            debit: "",
+            credit: "",
+          };
+        }
+
+        // -----------------------------------------------
+        // DEBIT
+        // -----------------------------------------------
+
+        if (field === "debit") {
+          return {
+            ...row,
+            debit: value,
+            credit: "",
+            type: "By",
+          };
+        }
+
+        // -----------------------------------------------
+        // CREDIT
+        // -----------------------------------------------
+
+        if (field === "credit") {
+          return {
+            ...row,
+            credit: value,
+            debit: "",
+            type: "To",
+          };
+        }
+
+        return {
+          ...row,
+          [field]: value,
+        };
+      })
+    );
+  };
+
+  // =========================================================
+  // ADD ROW
+  // =========================================================
+
+  const addRow = () => {
+    setRows((currentRows) => [
+      ...currentRows,
+      {
+        id: Date.now(),
+        ledgerId: "",
+        type: "",
+        debit: "",
+        credit: "",
+      },
+    ]);
+  };
+
+  // =========================================================
+  // REMOVE ROW
+  // =========================================================
+
+  const removeRow = (id) => {
+    if (rows.length <= 2) {
+      return;
+    }
+
+    setRows((currentRows) =>
+      currentRows.filter(
+        (row) => row.id !== id
       )
     );
   };
 
-  const addRow = () => {
-    setEntries((currentEntries) => [
-      ...currentEntries,
-      createEmptyEntry(Date.now()),
-    ]);
-  };
-
-  const removeRow = (id) => {
-    if (entries.length <= 2) {
-      return;
-    }
-
-    setEntries((currentEntries) =>
-      currentEntries.filter((entry) => entry.id !== id)
-    );
-  };
+  // =========================================================
+  // CLEAR FORM
+  // =========================================================
 
   const clearForm = () => {
     setVoucherDate(getToday());
+
     setNarration("");
-    setEntries([
-      createEmptyEntry(1),
-      createEmptyEntry(2),
-    ]);
+
     setSuccessMessage("");
+
+    setRows([
+      {
+        id: 1,
+        ledgerId: "",
+        type: "",
+        debit: "",
+        credit: "",
+      },
+      {
+        id: 2,
+        ledgerId: "",
+        type: "",
+        debit: "",
+        credit: "",
+      },
+    ]);
+
+    dispatch(clearJournalError());
   };
+
+  // =========================================================
+  // SAVE JOURNAL
+  // =========================================================
 
   const handleSave = async () => {
     setSuccessMessage("");
 
+    // -----------------------------------------------
+    // DATE VALIDATION
+    // -----------------------------------------------
+
     if (!voucherDate) {
-      alert("Voucher date is required");
+      alert("Please select voucher date.");
       return;
     }
 
-    if (entries.length < 2) {
-      alert("At least two journal entries are required");
+    // -----------------------------------------------
+    // REMOVE EMPTY ROWS
+    // -----------------------------------------------
+
+    const validRows = rows.filter(
+      (row) =>
+        row.ledgerId ||
+        Number(row.debit || 0) > 0 ||
+        Number(row.credit || 0) > 0
+    );
+
+    // -----------------------------------------------
+    // MINIMUM TWO ENTRIES
+    // -----------------------------------------------
+
+    if (validRows.length < 2) {
+      alert(
+        "At least two journal entries are required."
+      );
       return;
     }
 
-    for (const entry of entries) {
-      if (!entry.ledgerId) {
-        alert("Please select ledger for every entry");
+    // -----------------------------------------------
+    // VALIDATE EACH ROW
+    // -----------------------------------------------
+
+    for (const row of validRows) {
+      if (!row.ledgerId) {
+        alert(
+          "Please select ledger for every entry."
+        );
         return;
       }
 
-      if (!entry.type) {
-        alert("Please select To or By for every entry");
+      const debit = Number(row.debit || 0);
+      const credit = Number(row.credit || 0);
+
+      if (debit === 0 && credit === 0) {
+        alert(
+          "Every entry must have Debit or Credit amount."
+        );
         return;
       }
 
-      if (
-        !entry.amount ||
-        Number(entry.amount) <= 0
-      ) {
-        alert("Please enter a valid amount for every entry");
+      if (debit > 0 && credit > 0) {
+        alert(
+          "One entry cannot have both Debit and Credit."
+        );
         return;
       }
     }
+
+    // -----------------------------------------------
+    // BALANCE VALIDATION
+    // -----------------------------------------------
 
     if (!isBalanced) {
-      alert("Total Debit and Total Credit must be equal");
+      alert(
+        "Debit and Credit must be equal before saving."
+      );
       return;
     }
 
-    const data = {
-      voucherDate,
-      narration: narration.trim(),
-      entries: entries.map((entry) => ({
-        ledgerId: Number(entry.ledgerId),
-        debit:
-          entry.type === "debit"
-            ? Number(entry.amount)
-            : 0,
-        credit:
-          entry.type === "credit"
-            ? Number(entry.amount)
-            : 0,
-      })),
-    };
+    // -----------------------------------------------
+    // API PAYLOAD
+    // -----------------------------------------------
+
+    const entries = validRows.map((row) => ({
+      ledgerId: Number(row.ledgerId),
+      debit: Number(row.debit || 0),
+      credit: Number(row.credit || 0),
+    }));
 
     try {
-      await dispatch(
-        createJournalVoucher(data)
+      const result = await dispatch(
+        createJournalVoucher({
+          voucherDate,
+          narration: narration.trim(),
+          entries,
+        })
       ).unwrap();
 
+      // -----------------------------------------------
+      // SUCCESS
+      // -----------------------------------------------
+
       setSuccessMessage(
-        "Journal voucher saved successfully"
+        "Journal voucher saved successfully."
       );
 
-      setEntries([
-        createEmptyEntry(1),
-        createEmptyEntry(2),
+      // -----------------------------------------------
+      // LOCAL PREVIEW STORAGE
+      // -----------------------------------------------
+
+      try {
+        const oldData =
+          JSON.parse(
+            localStorage.getItem(
+              "journalVouchers"
+            ) || "[]"
+          );
+
+        oldData.push(
+          result?.data || {
+            voucher_number: voucherNumber,
+          }
+        );
+
+        localStorage.setItem(
+          "journalVouchers",
+          JSON.stringify(oldData)
+        );
+      } catch (error) {
+        console.error(
+          "Local storage error:",
+          error
+        );
+      }
+
+      // -----------------------------------------------
+      // RESET
+      // -----------------------------------------------
+
+      setRows([
+        {
+          id: Date.now(),
+          ledgerId: "",
+          type: "",
+          debit: "",
+          credit: "",
+        },
+        {
+          id: Date.now() + 1,
+          ledgerId: "",
+          type: "",
+          debit: "",
+          credit: "",
+        },
       ]);
+
       setNarration("");
+
       setVoucherDate(getToday());
+
+      // -----------------------------------------------
+      // GO DAY BOOK
+      // -----------------------------------------------
+
+      setTimeout(() => {
+        router.push("/daybook");
+      }, 800);
     } catch (error) {
       console.error(
-        "Journal creation failed:",
+        "CREATE JOURNAL ERROR:",
         error
       );
     }
   };
 
+  // =========================================================
+  // FORMAT MONEY
+  // =========================================================
+
+  const formatMoney = (value) => {
+    return Number(value || 0).toLocaleString(
+      "en-IN",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
+  };
+
+  // =========================================================
+  // UI
+  // =========================================================
+
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f5f7fb",
+        padding: "28px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+        }}
+      >
+        {/* ================================================= */}
+        {/* PAGE HEADER */}
+        {/* ================================================= */}
 
-        <div className="mb-5 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
-              <span className="text-xl font-bold">
-                JV
-              </span>
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "22px 26px",
+            marginBottom: "20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "14px",
+            }}
+          >
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "10px",
+                background: "#2563eb",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "800",
+                fontSize: "17px",
+              }}
+            >
+              JV
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: "26px",
+                  fontWeight: "800",
+                  color: "#0f172a",
+                }}
+              >
                 Journal Voucher
               </h1>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p
+                style={{
+                  margin: "4px 0 0",
+                  fontSize: "14px",
+                  color: "#64748b",
+                }}
+              >
                 Record debit and credit transactions
               </p>
             </div>
           </div>
 
-          <div className="min-w-[190px] rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+          {/* VOUCHER NUMBER */}
+
+          <div
+            style={{
+              minWidth: "180px",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              borderRadius: "10px",
+              padding: "12px 16px",
+              textAlign: "right",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: "800",
+                color: "#2563eb",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
               Voucher Number
-            </p>
-
-            <p className="mt-1 text-lg font-bold text-slate-800">
-              {voucherNumber}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-
-          <div className="border-b border-slate-200 p-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Voucher Date
-                </label>
-
-                <input
-                  type="date"
-                  value={voucherDate}
-                  onChange={(e) =>
-                    setVoucherDate(e.target.value)
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Voucher Status
-                </label>
-
-                <div
-                  className={`flex items-center rounded-lg border px-3 py-2.5 text-sm font-semibold ${
-                    isBalanced
-                      ? "border-green-200 bg-green-50 text-green-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700"
-                  }`}
-                >
-                  <span className="mr-2">
-                    {isBalanced ? "✓" : "⚠"}
-                  </span>
-
-                  {isBalanced
-                    ? "Balanced"
-                    : "Not Balanced"}
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div className="p-5">
-
-            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800">
-                  Journal Entries
-                </h2>
-
-                <p className="text-sm text-slate-500">
-                  Select ledger and enter To / By amount
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={addRow}
-                className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-black shadow-sm transition hover:bg-blue-700"
-              >
-                + Add Row
-              </button>
-            </div>
-
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-
-              <table className="w-full min-w-[800px] border-collapse">
-
-                <thead>
-                  <tr className="bg-slate-800 text-white">
-
-                    <th className="w-14 px-4 py-3 text-center text-sm font-bold">
-                      #
-                    </th>
-
-                    <th className="px-4 py-3 text-left text-sm font-bold">
-                      Ledger Account
-                    </th>
-
-                    <th className="w-32 px-4 py-3 text-center text-sm font-bold">
-                      Type
-                    </th>
-
-                    <th className="w-40 px-4 py-3 text-right text-sm font-bold">
-                      Debit
-                    </th>
-
-                    <th className="w-40 px-4 py-3 text-right text-sm font-bold">
-                      Credit
-                    </th>
-
-                    <th className="w-24 px-4 py-3 text-center text-sm font-bold">
-                      Action
-                    </th>
-
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {entries.map((entry, index) => (
-                    <tr
-                      key={entry.id}
-                      className="border-t border-slate-200 hover:bg-slate-50"
-                    >
-
-                      <td className="px-4 py-3 text-center text-sm font-semibold text-slate-600">
-                        {index + 1}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <select
-                          value={entry.ledgerId}
-                          onChange={(e) =>
-                            updateEntry(
-                              entry.id,
-                              "ledgerId",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                          <option value="">
-                            Select Ledger Account
-                          </option>
-
-                          {ledgers.map((ledger) => (
-                            <option
-                              key={ledger.id}
-                              value={ledger.id}
-                            >
-                              {ledger.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <select
-                          value={entry.type}
-                          onChange={(e) =>
-                            updateEntry(
-                              entry.id,
-                              "type",
-                              e.target.value
-                            )
-                          }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-blue-500"
-                        >
-                          <option value="">
-                            Select
-                          </option>
-
-                          <option value="debit">
-                            By
-                          </option>
-
-                          <option value="credit">
-                            To
-                          </option>
-                        </select>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={
-                            entry.type === "debit"
-                              ? entry.amount
-                              : ""
-                          }
-                          disabled={
-                            entry.type !== "debit"
-                          }
-                          onChange={(e) =>
-                            updateEntry(
-                              entry.id,
-                              "amount",
-                              e.target.value
-                            )
-                          }
-                          placeholder="0.00"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-right text-sm font-semibold outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
-                        />
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={
-                            entry.type === "credit"
-                              ? entry.amount
-                              : ""
-                          }
-                          disabled={
-                            entry.type !== "credit"
-                          }
-                          onChange={(e) =>
-                            updateEntry(
-                              entry.id,
-                              "amount",
-                              e.target.value
-                            )
-                          }
-                          placeholder="0.00"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-right text-sm font-semibold outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
-                        />
-                      </td>
-
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeRow(entry.id)
-                          }
-                          disabled={entries.length <= 2}
-                          className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          Remove
-                        </button>
-                      </td>
-
-                    </tr>
-                  ))}
-                </tbody>
-
-                <tfoot>
-                  <tr className="bg-slate-50">
-
-                    <td
-                      colSpan="3"
-                      className="px-4 py-4 text-right text-sm font-bold text-slate-700"
-                    >
-                      Total
-                    </td>
-
-                    <td className="px-4 py-4 text-right text-base font-bold text-slate-800">
-                      ₹ {totalDebit.toFixed(2)}
-                    </td>
-
-                    <td className="px-4 py-4 text-right text-base font-bold text-slate-800">
-                      ₹ {totalCredit.toFixed(2)}
-                    </td>
-
-                    <td></td>
-
-                  </tr>
-                </tfoot>
-
-              </table>
             </div>
 
             <div
-              className={`mt-4 flex items-center justify-between rounded-lg border px-4 py-3 ${
-                isBalanced
-                  ? "border-green-200 bg-green-50"
-                  : "border-amber-200 bg-amber-50"
-              }`}
+              style={{
+                marginTop: "4px",
+                fontSize: "20px",
+                fontWeight: "800",
+                color: "#0f172a",
+              }}
             >
-              <div>
-                <p
-                  className={`text-sm font-bold ${
-                    isBalanced
-                      ? "text-green-700"
-                      : "text-amber-700"
-                  }`}
-                >
-                  {isBalanced
-                    ? "Journal is balanced"
-                    : "Journal is not balanced"}
-                </p>
-
-                <p className="text-xs text-slate-500">
-                  Debit and Credit must be equal
-                </p>
-              </div>
-
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">
-                  Difference
-                </p>
-
-                <p className="text-base font-bold text-slate-800">
-                  ₹ {difference.toFixed(2)}
-                </p>
-              </div>
+              {voucherNumber}
             </div>
+          </div>
+        </div>
 
-            <div className="mt-5">
-              <label className="mb-2 block text-sm font-bold text-slate-700">
-                Narration
+        {/* ================================================= */}
+        {/* BASIC DETAILS */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "20px 24px",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "18px",
+            }}
+          >
+            {/* DATE */}
+
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "7px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  color: "#334155",
+                }}
+              >
+                Voucher Date
               </label>
 
-              <textarea
-                value={narration}
+              <input
+                type="date"
+                value={voucherDate}
                 onChange={(e) =>
-                  setNarration(e.target.value)
+                  setVoucherDate(e.target.value)
                 }
-                rows={3}
-                placeholder="Enter reason or description..."
-                className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                style={{
+                  width: "100%",
+                  height: "42px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  padding: "0 12px",
+                  fontSize: "14px",
+                  color: "#0f172a",
+                  outline: "none",
+                }}
               />
             </div>
 
-            {successMessage && (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-                ✓ {successMessage}
-              </div>
-            )}
+            {/* STATUS */}
 
-            {journalError && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                {journalError}
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-
-              <button
-                type="button"
-                onClick={clearForm}
-                className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "7px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  color: "#334155",
+                }}
               >
-                Clear
-              </button>
+                Voucher Status
+              </label>
 
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={
-                  journalLoading || !isBalanced
-                }
-                className="rounded-lg bg-green-600 px-7 py-3 text-sm font-bold text-black shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+              <div
+                style={{
+                  height: "42px",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "0 12px",
+                  borderRadius: "8px",
+                  border: `1px solid ${
+                    isBalanced
+                      ? "#bbf7d0"
+                      : "#fed7aa"
+                  }`,
+                  background:
+                    isBalanced
+                      ? "#f0fdf4"
+                      : "#fff7ed",
+                  color:
+                    isBalanced
+                      ? "#15803d"
+                      : "#c2410c",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                }}
               >
-                {journalLoading
-                  ? "Saving..."
-                  : "Save Journal Voucher"}
-              </button>
+                {isBalanced
+                  ? "✓ Balanced"
+                  : "⚠ Not Balanced"}
+              </div>
+            </div>
+          </div>
+        </div>
 
+        {/* ================================================= */}
+        {/* JOURNAL ENTRIES */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            overflow: "hidden",
+            marginBottom: "20px",
+          }}
+        >
+          {/* SECTION HEADER */}
+
+          <div
+            style={{
+              padding: "20px 24px",
+              borderBottom: "1px solid #e2e8f0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "15px",
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "20px",
+                  fontWeight: "800",
+                  color: "#0f172a",
+                }}
+              >
+                Journal Entries
+              </h2>
+
+              <p
+                style={{
+                  margin: "5px 0 0",
+                  fontSize: "13px",
+                  color: "#64748b",
+                }}
+              >
+                Select ledger and enter To / By amount
+              </p>
             </div>
 
+            <button
+              type="button"
+              onClick={addRow}
+              style={{
+                border: "none",
+                background: "#2563eb",
+                color: "#ffffff",
+                padding: "10px 16px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
+            >
+              + Add Row
+            </button>
           </div>
+
+          {/* ================================================= */}
+          {/* TABLE */}
+          {/* ================================================= */}
+
+          <div
+            style={{
+              overflowX: "auto",
+              width: "100%",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                minWidth: "900px",
+                borderCollapse: "collapse",
+                tableLayout: "fixed",
+              }}
+            >
+              {/* ================================================= */}
+              {/* COLUMN HEADERS */}
+              {/* ================================================= */}
+
+              <thead>
+                <tr
+                  style={{
+                    background: "#f1f5f9",
+                  }}
+                >
+                  <th
+                    style={{
+                      width: "55px",
+                      padding: "14px 10px",
+                      borderBottom:
+                        "2px solid #cbd5e1",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      textAlign: "center",
+                    }}
+                  >
+                    #
+                  </th>
+
+                  <th
+                    style={{
+                      width: "28%",
+                      padding: "14px 12px",
+                      borderBottom:
+                        "2px solid #cbd5e1",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      textAlign: "left",
+                    }}
+                  >
+                    Ledger Account
+                  </th>
+
+                  <th
+                    style={{
+                      width: "130px",
+                      padding: "14px 12px",
+                      borderBottom:
+                        "2px solid #cbd5e1",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      textAlign: "center",
+                    }}
+                  >
+                    To / By
+                  </th>
+
+                  <th
+                    style={{
+                      width: "170px",
+                      padding: "14px 12px",
+                      borderBottom:
+                        "2px solid #cbd5e1",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      textAlign: "right",
+                    }}
+                  >
+                    Debit
+                  </th>
+
+                  <th
+                    style={{
+                      width: "170px",
+                      padding: "14px 12px",
+                      borderBottom:
+                        "2px solid #cbd5e1",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      textAlign: "right",
+                    }}
+                  >
+                    Credit
+                  </th>
+
+                  <th
+                    style={{
+                      width: "110px",
+                      padding: "14px 12px",
+                      borderBottom:
+                        "2px solid #cbd5e1",
+                      color: "#334155",
+                      fontSize: "13px",
+                      fontWeight: "800",
+                      textAlign: "center",
+                    }}
+                  >
+                    Action
+                  </th>
+                </tr>
+              </thead>
+
+              {/* ================================================= */}
+              {/* TABLE BODY */}
+              {/* ================================================= */}
+
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={row.id}>
+                    {/* NUMBER */}
+
+                    <td
+                      style={{
+                        padding: "13px 10px",
+                        borderBottom:
+                          "1px solid #e2e8f0",
+                        textAlign: "center",
+                        fontWeight: "700",
+                        color: "#64748b",
+                      }}
+                    >
+                      {index + 1}
+                    </td>
+
+                    {/* LEDGER */}
+
+                    <td
+                      style={{
+                        padding: "13px 12px",
+                        borderBottom:
+                          "1px solid #e2e8f0",
+                      }}
+                    >
+                      <select
+                        value={row.ledgerId}
+                        onChange={(e) =>
+                          updateRow(
+                            row.id,
+                            "ledgerId",
+                            e.target.value
+                          )
+                        }
+                        style={{
+                          width: "100%",
+                          height: "40px",
+                          border:
+                            "1px solid #cbd5e1",
+                          borderRadius: "7px",
+                          padding: "0 10px",
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          fontSize: "13px",
+                        }}
+                      >
+                        <option value="">
+                          Select Ledger Account
+                        </option>
+
+                        {ledgers.map((ledger) => (
+                          <option
+                            key={ledger.id}
+                            value={ledger.id}
+                          >
+                            {ledger.code
+                              ? `${ledger.code} - ${ledger.name}`
+                              : ledger.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    {/* TO / BY */}
+
+                    <td
+                      style={{
+                        padding: "13px 12px",
+                        borderBottom:
+                          "1px solid #e2e8f0",
+                      }}
+                    >
+                      <select
+                        value={row.type}
+                        onChange={(e) =>
+                          updateRow(
+                            row.id,
+                            "type",
+                            e.target.value
+                          )
+                        }
+                        style={{
+                          width: "100%",
+                          height: "40px",
+                          border:
+                            "1px solid #cbd5e1",
+                          borderRadius: "7px",
+                          padding: "0 8px",
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        <option value="">
+                          Select
+                        </option>
+
+                        <option value="To">
+                          To
+                        </option>
+
+                        <option value="By">
+                          By
+                        </option>
+                      </select>
+                    </td>
+
+                    {/* DEBIT */}
+
+                    <td
+                      style={{
+                        padding: "13px 12px",
+                        borderBottom:
+                          "1px solid #e2e8f0",
+                      }}
+                    >
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.debit}
+                        onChange={(e) =>
+                          updateRow(
+                            row.id,
+                            "debit",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0.00"
+                        style={{
+                          width: "100%",
+                          height: "40px",
+                          border:
+                            "1px solid #cbd5e1",
+                          borderRadius: "7px",
+                          padding: "0 10px",
+                          textAlign: "right",
+                          fontSize: "13px",
+                          color: "#0f172a",
+                        }}
+                      />
+                    </td>
+
+                    {/* CREDIT */}
+
+                    <td
+                      style={{
+                        padding: "13px 12px",
+                        borderBottom:
+                          "1px solid #e2e8f0",
+                      }}
+                    >
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.credit}
+                        onChange={(e) =>
+                          updateRow(
+                            row.id,
+                            "credit",
+                            e.target.value
+                          )
+                        }
+                        placeholder="0.00"
+                        style={{
+                          width: "100%",
+                          height: "40px",
+                          border:
+                            "1px solid #cbd5e1",
+                          borderRadius: "7px",
+                          padding: "0 10px",
+                          textAlign: "right",
+                          fontSize: "13px",
+                          color: "#0f172a",
+                        }}
+                      />
+                    </td>
+
+                    {/* ACTION */}
+
+                    <td
+                      style={{
+                        padding: "13px 12px",
+                        borderBottom:
+                          "1px solid #e2e8f0",
+                        textAlign: "center",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeRow(row.id)
+                        }
+                        disabled={rows.length <= 2}
+                        style={{
+                          height: "38px",
+                          padding: "0 12px",
+                          borderRadius: "7px",
+                          border: "1px solid #fecaca",
+                          background:
+                            rows.length <= 2
+                              ? "#f8fafc"
+                              : "#fef2f2",
+                          color:
+                            rows.length <= 2
+                              ? "#94a3b8"
+                              : "#dc2626",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor:
+                            rows.length <= 2
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+
+              {/* ================================================= */}
+              {/* TOTAL */}
+              {/* ================================================= */}
+
+              <tfoot>
+                <tr
+                  style={{
+                    background: "#f8fafc",
+                  }}
+                >
+                  <td
+                    colSpan="3"
+                    style={{
+                      padding: "15px 12px",
+                      textAlign: "right",
+                      borderTop:
+                        "2px solid #cbd5e1",
+                      fontWeight: "800",
+                      color: "#334155",
+                    }}
+                  >
+                    Total
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "15px 12px",
+                      textAlign: "right",
+                      borderTop:
+                        "2px solid #cbd5e1",
+                      fontWeight: "800",
+                      color: "#0f172a",
+                    }}
+                  >
+                    ₹ {formatMoney(totalDebit)}
+                  </td>
+
+                  <td
+                    style={{
+                      padding: "15px 12px",
+                      textAlign: "right",
+                      borderTop:
+                        "2px solid #cbd5e1",
+                      fontWeight: "800",
+                      color: "#0f172a",
+                    }}
+                  >
+                    ₹ {formatMoney(totalCredit)}
+                  </td>
+
+                  <td
+                    style={{
+                      borderTop:
+                        "2px solid #cbd5e1",
+                    }}
+                  />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* ================================================= */}
+        {/* BALANCE INFORMATION */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            background: isBalanced
+              ? "#f0fdf4"
+              : "#fff7ed",
+            border: `1px solid ${
+              isBalanced
+                ? "#bbf7d0"
+                : "#fed7aa"
+            }`,
+            borderRadius: "12px",
+            padding: "16px 20px",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "15px",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontWeight: "800",
+                  color: isBalanced
+                    ? "#15803d"
+                    : "#c2410c",
+                  fontSize: "14px",
+                }}
+              >
+                {isBalanced
+                  ? "✓ Journal is balanced"
+                  : "⚠ Journal is not balanced"}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "4px",
+                  color: "#64748b",
+                  fontSize: "13px",
+                }}
+              >
+                Debit and Credit must be equal
+              </div>
+            </div>
+
+            <div
+              style={{
+                textAlign: "right",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#64748b",
+                  fontWeight: "600",
+                }}
+              >
+                Difference
+              </div>
+
+              <div
+                style={{
+                  marginTop: "3px",
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  color: isBalanced
+                    ? "#15803d"
+                    : "#dc2626",
+                }}
+              >
+                ₹ {formatMoney(difference)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ================================================= */}
+        {/* NARRATION */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "20px 24px",
+            marginBottom: "20px",
+          }}
+        >
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontSize: "14px",
+              fontWeight: "800",
+              color: "#334155",
+            }}
+          >
+            Narration
+          </label>
+
+          <textarea
+            value={narration}
+            onChange={(e) =>
+              setNarration(e.target.value)
+            }
+            rows={3}
+            placeholder="Enter reason / description for this journal voucher..."
+            style={{
+              width: "100%",
+              resize: "vertical",
+              border: "1px solid #cbd5e1",
+              borderRadius: "8px",
+              padding: "12px",
+              fontSize: "14px",
+              color: "#0f172a",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        {/* ================================================= */}
+        {/* SUCCESS */}
+        {/* ================================================= */}
+
+        {successMessage && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "13px 16px",
+              borderRadius: "8px",
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              color: "#15803d",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            ✓ {successMessage}
+          </div>
+        )}
+
+        {/* ================================================= */}
+        {/* ERROR */}
+        {/* ================================================= */}
+
+        {journalError && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "13px 16px",
+              borderRadius: "8px",
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#dc2626",
+              fontWeight: "700",
+              fontSize: "14px",
+            }}
+          >
+            ⚠ {journalError}
+          </div>
+        )}
+
+        {/* ================================================= */}
+        {/* ACTION BUTTONS */}
+        {/* ================================================= */}
+
+        <div
+          style={{
+            background: "#ffffff",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "18px 24px",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <button
+            type="button"
+            onClick={clearForm}
+            disabled={journalLoading}
+            style={{
+              height: "44px",
+              padding: "0 22px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              background: "#ffffff",
+              color: "#475569",
+              fontSize: "14px",
+              fontWeight: "800",
+              cursor: "pointer",
+            }}
+          >
+            Clear
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={
+              journalLoading || !isBalanced
+            }
+            style={{
+              height: "44px",
+              padding: "0 28px",
+              borderRadius: "8px",
+              border: "none",
+              background:
+                journalLoading || !isBalanced
+                  ? "#94a3b8"
+                  : "#16a34a",
+              color: "#ffffff",
+              fontSize: "14px",
+              fontWeight: "800",
+              cursor:
+                journalLoading || !isBalanced
+                  ? "not-allowed"
+                  : "pointer",
+              boxShadow:
+                journalLoading || !isBalanced
+                  ? "none"
+                  : "0 4px 10px rgba(22,163,74,0.2)",
+            }}
+          >
+            {journalLoading
+              ? "Saving..."
+              : "Save Journal"}
+          </button>
         </div>
       </div>
     </div>

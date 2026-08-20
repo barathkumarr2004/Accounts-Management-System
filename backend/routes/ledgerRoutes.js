@@ -1,12 +1,7 @@
 const express = require("express");
-
 const router = express.Router();
 
-const {
-  getLedgers,
-  createLedger,
-} = require("../controllers/ledgerController");
-
+const {getLedgers,createLedger,} = require("../controllers/ledgerController");
 
 router.get("/", getLedgers);
 

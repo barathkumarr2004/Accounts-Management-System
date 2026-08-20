@@ -1,42 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { useDispatch, useSelector } from "react-redux";
-
-import {
-  fetchGroups,
-} from "../store/slices/groupSlice";
-
-import {
-  createLedger,
-  clearLedgerError,
-} from "../store/slices/ledgerSlice";
-
+import {fetchGroups,} from "../store/slices/groupSlice";
+import { createLedger, clearLedgerError,} from "../store/slices/ledgerSlice";
 
 export default function LedgerForm() {
 
   const dispatch = useDispatch();
 
-
   // Groups from Redux
-  const {
-    groups,
-  } = useSelector((state) => state.groups);
-
+  const { groups,} = useSelector((state) => state.groups);
 
   // Ledger state
-  const {
-    loading,
-    error,
-  } = useSelector((state) => state.ledgers);
+  const { loading, error,} = useSelector((state) => state.ledgers);
 
-
-  const [formData, setFormData] = useState({
-    name: "",
-    group_id: "",
-  });
-
+  const [formData, setFormData] = useState({name: "", group_id: "", });
 
   const [groupSearch, setGroupSearch] = useState("");
 
@@ -44,61 +23,24 @@ export default function LedgerForm() {
 
   const [successMessage, setSuccessMessage] = useState("");
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Load Groups
-  |--------------------------------------------------------------------------
-  */
-
+//load groups
   useEffect(() => {
-
-    // If groups are not already loaded
-    if (groups.length === 0) {
-      dispatch(fetchGroups());
-    }
-
-  }, [dispatch, groups.length]);
+  dispatch(fetchGroups());
+}, [dispatch]);
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | Filter Groups
-  |--------------------------------------------------------------------------
-  */
-
+//filter gorups
   const filteredGroups = groups.filter((group) => {
-
   const search = groupSearch.toLowerCase();
-
-  const groupName =
-    group.name?.toLowerCase() || "";
-
-  const parentName =
-    group.parent_name?.toLowerCase() || "";
-
-  return (
-    groupName.includes(search) ||
-    parentName.includes(search)
-  );
+  const groupName = group.name?.toLowerCase() || "";
+  const parentName = group.parent_name?.toLowerCase() || "";
+  return ( groupName.includes(search) || parentName.includes(search));
 });
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Select Group
-  |--------------------------------------------------------------------------
-  */
-
+//select group
   const handleGroupSelect = (group) => {
-
-    setFormData((prev) => ({
-      ...prev,
-      group_id: group.id,
-    }));
-
+    setFormData((prev) => ({...prev, group_id: group.id,}));
     setGroupSearch(group.name);
-
     setShowGroups(false);
 
     // Clear old error
@@ -107,39 +49,17 @@ export default function LedgerForm() {
     }
   };
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Input Change
-  |--------------------------------------------------------------------------
-  */
-
+//input change
   const handleChange = (e) => {
-
-    const {
-      name,
-      value,
-    } = e.target;
-
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
+    const { name, value,  } = e.target;
+    setFormData((prev) => ({...prev, [name]: value, }));
 
     if (error) {
       dispatch(clearLedgerError());
     }
   };
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | Submit
-  |--------------------------------------------------------------------------
-  */
-
+  //submit
   const handleSubmit = async (e) => {
   e.preventDefault();
 
@@ -155,21 +75,13 @@ export default function LedgerForm() {
   }
 
   try {
-    await dispatch(
-      createLedger(formData)
-    ).unwrap();
+    await dispatch(createLedger(formData)).unwrap();
 
     // Success message
-    setSuccessMessage(
-      "Ledger created successfully"
-    );
+    setSuccessMessage("Ledger created successfully");
 
     // Clear form
-    setFormData({
-      name: "",
-      group_id: "",
-    });
-
+    setFormData({ name: "", group_id: "",});
     setGroupSearch("");
     setShowGroups(false);
 
@@ -179,97 +91,43 @@ export default function LedgerForm() {
     }, 3000);
 
   } catch (error) {
-    console.error(
-      "Create ledger error:",
-      error
-    );
+    console.error("Create ledger error:", error);
   }
 };
 
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | Cancel
-  |--------------------------------------------------------------------------
-  */
-
+//cancel
   const handleCancel = () => {
-
-    setFormData({
-      name: "",
-      group_id: "",
-    });
-
-    setGroupSearch("");
-
+    setFormData({ name: "", group_id: "",});
+   setGroupSearch("");
     setShowGroups(false);
-
     setSuccessMessage("");
-
     dispatch(clearLedgerError());
   };
 
-
   return (
     <div className="card shadow-sm">
-
-      {/* HEADER */}
-
       <div className="card-header bg-white">
-
-        <h5 className="mb-0">
-          Create Ledger
-        </h5>
-
-      </div>
-
+        <h5 className="mb-0"> Create Ledger </h5>
+     </div>
 
       <div className="card-body">
-
-
         {/* SUCCESS */}
-
-        {successMessage && (
-
-          <div
-            className="alert alert-success"
-            role="alert"
-          >
-            ✓ {successMessage}
+        {successMessage && (<div className="alert alert-success"role="alert" >
+            {successMessage}
           </div>
-
         )}
-
-
+        
         {/* ERROR */}
-
-        {error && (
-
-          <div
-            className="alert alert-danger"
-            role="alert"
-          >
-            ❌ {error}
+        {error && (<div className="alert alert-danger" role="alert" >
+             {error}
           </div>
-
-        )}
-
+       )}
 
         <form onSubmit={handleSubmit}>
-
-
-          {/* LEDGER NAME */}
-
           <div className="mb-3">
-
-            <label
-              htmlFor="name"
-              className="form-label"
-            >
+            <label htmlFor="name" className="form-label">
               Ledger Name
             </label>
-
 
             <input
               type="text"
@@ -281,25 +139,13 @@ export default function LedgerForm() {
               onChange={handleChange}
               required
             />
-
           </div>
 
-
-
-          {/* UNDER */}
-
           <div className="mb-3 position-relative">
-
-            <label
-              htmlFor="groupSearch"
-              className="form-label"
-            >
+            <label htmlFor="groupSearch" className="form-label">
               Under
             </label>
-
-
             {/* SEARCH INPUT */}
-
             <input
               type="text"
               id="groupSearch"
@@ -307,55 +153,26 @@ export default function LedgerForm() {
               placeholder="Search group..."
               value={groupSearch}
               onChange={(e) => {
-
                 setGroupSearch(e.target.value);
-
                 setShowGroups(true);
-
                 // Clear selected group if user changes search
-                setFormData((prev) => ({
-                  ...prev,
-                  group_id: "",
-                }));
-
+                setFormData((prev) => ({...prev, group_id: "", }));
               }}
-              onFocus={() => {
-                setShowGroups(true);
-              }}
+              onFocus={() => {setShowGroups(true);}}
               autoComplete="off"
               required
             />
-
-
+           
             {/* SELECTED GROUP */}
-
-            {formData.group_id && (
-
-              <div className="form-text">
-
+            {formData.group_id && (<div className="form-text">
                 Selected group ID: {formData.group_id}
-
               </div>
-
             )}
-
-
-
             {/* GROUP DROPDOWN */}
-
             {showGroups && (
-
-              <div
-                className="position-absolute bg-white border rounded shadow-sm w-100"
-                style={{
-                  zIndex: 1000,
-                  maxHeight: "250px",
-                  overflowY: "auto",
-                }}
-              >
-
-                {filteredGroups.length > 0 ? (
-
+              <div className="position-absolute bg-white border rounded shadow-sm w-100"
+                style={{ zIndex: 1000,maxHeight: "250px", overflowY: "auto",    }}>
+              {filteredGroups.length > 0 ? (
                  filteredGroups.map((group) => (
   <button
     type="button"
@@ -374,15 +191,12 @@ export default function LedgerForm() {
       Under: {group.parent_name || "Primary"}
     </small>
   </button>
-
                   ))
 
                 ) : (
 
                   <div className="px-3 py-2 text-muted">
-
                     No groups found
-
                   </div>
 
                 )}
@@ -392,8 +206,6 @@ export default function LedgerForm() {
             )}
 
           </div>
-
-
 
           {/* BUTTONS */}
 

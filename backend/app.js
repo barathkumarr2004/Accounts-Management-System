@@ -3,7 +3,8 @@ const cors = require("cors");
 
 const groupRoutes = require("./routes/groupRoutes");
 const ledgerRoutes = require("./routes/ledgerRoutes");
-const chartOfAccountsRoutes = require('./routes/chartofAccountsRoutes'); // mela eduthutu vanthuten
+const chartOfAccountsRoutes = require('./routes/chartofAccountsRoutes'); 
+const journalRoutes = require("./routes/journalRoutes");
 
 const app = express();
 
@@ -16,7 +17,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/groups", groupRoutes);
 app.use("/api/ledgers", ledgerRoutes);
-app.use("/api/chartsofaccounts", chartOfAccountsRoutes); // idha inge vechuten
+app.use("/api/chartsofaccounts", chartOfAccountsRoutes); 
+app.use("/api/journals", journalRoutes);
 
 //404 error
 app.use((req, res) => {

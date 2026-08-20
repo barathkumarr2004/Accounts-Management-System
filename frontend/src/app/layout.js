@@ -22,13 +22,20 @@ export default function RootLayout({ children }) {
 
       <body>
         <ReduxProvider>
-          <div className="d-flex min-vh-100">
-            <Sidebar />
+          <Sidebar />
 
-            <main className="flex-grow-1 p-4">
+          <main
+            style={{
+              marginLeft: "250px",
+              width: "calc(100% - 250px)",
+              minHeight: "100vh",
+              overflowX: "hidden",
+            }}
+          >
+            <div className="p-4">
               {children}
-            </main>
-          </div>
+            </div>
+          </main>
         </ReduxProvider>
 
         <script

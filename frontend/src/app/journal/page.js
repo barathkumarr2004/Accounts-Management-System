@@ -1,76 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
 
 import { getLedgers } from "../store/slices/ledgerSlice";
 import { createJournalVoucher } from "../store/slices/journalSlice";
 
-const getCurrentDate = () => {
-  const date = new Date();
+const createEmptyEntry = (id) => ({
+  id,
+  ledgerId: "",
+  type: "",
+  amount: "",
+});
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+const getToday = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 };
 
-const createEmptyRow = (id) => ({
-  id,
-  ledgerId: "",
-  type: "debit",
-  amount: "",
-});
-
 export default function JournalPage() {
   const dispatch = useDispatch();
-  const router = useRouter();
 
-  const ledgerState = useSelector(
-    (state) => state?.ledgers || {}
+  const { ledgers = [] } = useSelector(
+    (state) => state.ledgers || {}
   );
 
-  const journalState = useSelector(
-    (state) => state?.journals || {}
-  );
+  const {
+    loading: journalLoading,
+    error: journalError,
+  } = useSelector((state) => state.journals || {});
 
-  const ledgers = ledgerState.ledgers || [];
-  const ledgerLoading = ledgerState.loading || false;
-
-  const journalLoading = journalState.loading || false;
-  const journalError = journalState.error || null;
-
-  const [voucherDate, setVoucherDate] = useState(
-    getCurrentDate()
-  );
-
+  const [voucherDate, setVoucherDate] = useState(getToday());
   const [narration, setNarration] = useState("");
-
   const [entries, setEntries] = useState([
-    createEmptyRow(1),
-    createEmptyRow(2),
+    createEmptyEntry(1),
+    createEmptyEntry(2),
   ]);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const voucherNumber = "JV-00007";
 
   useEffect(() => {
     dispatch(getLedgers());
-
-    const timer = setInterval(() => {
-      setVoucherDate((currentDate) => {
-        const today = getCurrentDate();
-
-        return currentDate === today
-          ? currentDate
-          : today;
-      });
-    }, 60000);
-
-    return () => clearInterval(timer);
   }, [dispatch]);
+
+  const totalDebit = useMemo(() => {
+    return entries.reduce((total, entry) => {
+      return entry.type === "debit"
+        ? total + Number(entry.amount || 0)
+        : total;
+    }, 0);
+  }, [entries]);
+
+  const totalCredit = useMemo(() => {
+    return entries.reduce((total, entry) => {
+      return entry.type === "credit"
+        ? total + Number(entry.amount || 0)
+        : total;
+    }, 0);
+  }, [entries]);
+
+  const difference = Math.abs(totalDebit - totalCredit);
+
+  const isBalanced =
+    totalDebit > 0 &&
+    totalCredit > 0 &&
+    totalDebit === totalCredit;
 
   const updateEntry = (id, field, value) => {
     setEntries((currentEntries) =>
@@ -83,18 +82,13 @@ export default function JournalPage() {
           : entry
       )
     );
-
-    setError("");
-    setMessage("");
   };
 
   const addRow = () => {
     setEntries((currentEntries) => [
       ...currentEntries,
-      createEmptyRow(Date.now()),
+      createEmptyEntry(Date.now()),
     ]);
-
-    setError("");
   };
 
   const removeRow = (id) => {
@@ -103,149 +97,93 @@ export default function JournalPage() {
     }
 
     setEntries((currentEntries) =>
-      currentEntries.filter(
-        (entry) => entry.id !== id
-      )
+      currentEntries.filter((entry) => entry.id !== id)
     );
   };
 
-  const totalDebit = entries.reduce(
-    (total, entry) =>
-      entry.type === "debit"
-        ? total + Number(entry.amount || 0)
-        : total,
-    0
-  );
-
-  const totalCredit = entries.reduce(
-    (total, entry) =>
-      entry.type === "credit"
-        ? total + Number(entry.amount || 0)
-        : total,
-    0
-  );
-
-  const difference = Math.abs(
-    totalDebit - totalCredit
-  );
-
-  const isBalanced =
-    totalDebit > 0 &&
-    totalCredit > 0 &&
-    totalDebit === totalCredit;
-
   const clearForm = () => {
-    setVoucherDate(getCurrentDate());
+    setVoucherDate(getToday());
     setNarration("");
-
     setEntries([
-      createEmptyRow(1),
-      createEmptyRow(2),
+      createEmptyEntry(1),
+      createEmptyEntry(2),
     ]);
-
-    setError("");
-    setMessage("");
+    setSuccessMessage("");
   };
 
   const handleSave = async () => {
-    setError("");
-    setMessage("");
+    setSuccessMessage("");
+
+    if (!voucherDate) {
+      alert("Voucher date is required");
+      return;
+    }
+
+    if (entries.length < 2) {
+      alert("At least two journal entries are required");
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.ledgerId) {
+        alert("Please select ledger for every entry");
+        return;
+      }
+
+      if (!entry.type) {
+        alert("Please select To or By for every entry");
+        return;
+      }
+
+      if (
+        !entry.amount ||
+        Number(entry.amount) <= 0
+      ) {
+        alert("Please enter a valid amount for every entry");
+        return;
+      }
+    }
+
+    if (!isBalanced) {
+      alert("Total Debit and Total Credit must be equal");
+      return;
+    }
+
+    const data = {
+      voucherDate,
+      narration: narration.trim(),
+      entries: entries.map((entry) => ({
+        ledgerId: Number(entry.ledgerId),
+        debit:
+          entry.type === "debit"
+            ? Number(entry.amount)
+            : 0,
+        credit:
+          entry.type === "credit"
+            ? Number(entry.amount)
+            : 0,
+      })),
+    };
 
     try {
-      if (!voucherDate) {
-        setError("Voucher date is required");
-        return;
-      }
-
-      if (entries.length < 2) {
-        setError(
-          "At least two journal entries are required"
-        );
-        return;
-      }
-
-      const invalidLedger = entries.some(
-        (entry) => !entry.ledgerId
-      );
-
-      if (invalidLedger) {
-        setError(
-          "Please select a ledger for every row"
-        );
-        return;
-      }
-
-      const invalidAmount = entries.some(
-        (entry) =>
-          !entry.amount ||
-          Number(entry.amount) <= 0
-      );
-
-      if (invalidAmount) {
-        setError(
-          "Every entry must have an amount greater than 0"
-        );
-        return;
-      }
-
-      if (totalDebit === 0) {
-        setError(
-          "At least one Debit entry is required"
-        );
-        return;
-      }
-
-      if (totalCredit === 0) {
-        setError(
-          "At least one Credit entry is required"
-        );
-        return;
-      }
-
-      if (!isBalanced) {
-        setError(
-          `Journal is not balanced. Difference: ₹ ${difference.toFixed(
-            2
-          )}`
-        );
-        return;
-      }
-
-      const data = {
-        voucherDate,
-        narration: narration.trim(),
-
-        entries: entries.map((entry) => ({
-          ledgerId: Number(entry.ledgerId),
-
-          debit:
-            entry.type === "debit"
-              ? Number(entry.amount)
-              : 0,
-
-          credit:
-            entry.type === "credit"
-              ? Number(entry.amount)
-              : 0,
-        })),
-      };
-
       await dispatch(
         createJournalVoucher(data)
       ).unwrap();
 
-      setMessage(
-        "Journal Voucher saved successfully"
+      setSuccessMessage(
+        "Journal voucher saved successfully"
       );
 
-      setTimeout(() => {
-        router.push("/daybook");
-      }, 700);
+      setEntries([
+        createEmptyEntry(1),
+        createEmptyEntry(2),
+      ]);
+      setNarration("");
+      setVoucherDate(getToday());
     } catch (error) {
-      setError(
-        error?.message ||
-          journalError ||
-          "Unable to save journal voucher"
+      console.error(
+        "Journal creation failed:",
+        error
       );
     }
   };
@@ -254,39 +192,44 @@ export default function JournalPage() {
     <div className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
 
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              Journal Voucher
-            </h1>
+        <div className="mb-5 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
 
-            <p className="mt-1 text-sm text-slate-500">
-              Record debit and credit transactions
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+              <span className="text-xl font-bold">
+                JV
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+                Journal Voucher
+              </h1>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Record debit and credit transactions
+              </p>
+            </div>
           </div>
 
-          <div className="rounded-lg border bg-white px-5 py-3 text-right shadow-sm">
-            <p className="text-xs text-slate-500">
+          <div className="min-w-[190px] rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
               Voucher Number
             </p>
 
-            <p className="font-semibold text-slate-800">
-              Auto Generate
+            <p className="mt-1 text-lg font-bold text-slate-800">
+              {voucherNumber}
             </p>
           </div>
         </div>
 
-        {/* Main Card */}
-        <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
 
-          {/* Voucher Details */}
-          <div className="border-b bg-slate-50 p-5">
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="border-b border-slate-200 p-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Voucher Date
                 </label>
 
@@ -296,97 +239,85 @@ export default function JournalPage() {
                   onChange={(e) =>
                     setVoucherDate(e.target.value)
                   }
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Voucher Status
                 </label>
 
                 <div
-                  className={`flex h-[42px] items-center rounded-lg border px-3 text-sm font-medium ${
+                  className={`flex items-center rounded-lg border px-3 py-2.5 text-sm font-semibold ${
                     isBalanced
                       ? "border-green-200 bg-green-50 text-green-700"
                       : "border-amber-200 bg-amber-50 text-amber-700"
                   }`}
                 >
+                  <span className="mr-2">
+                    {isBalanced ? "✓" : "⚠"}
+                  </span>
+
                   {isBalanced
-                    ? "✓ Balanced"
-                    : "⚠ Not Balanced"}
+                    ? "Balanced"
+                    : "Not Balanced"}
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  Narration
-                </label>
-
-                <input
-                  type="text"
-                  value={narration}
-                  onChange={(e) =>
-                    setNarration(e.target.value)
-                  }
-                  placeholder="Enter narration"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
               </div>
 
             </div>
           </div>
 
-          {/* Entries */}
           <div className="p-5">
 
-            <div className="mb-4 flex items-center justify-between">
-
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">
+                <h2 className="text-lg font-bold text-slate-800">
                   Journal Entries
                 </h2>
 
-                <p className="text-xs text-slate-500">
-                  Select ledger and enter debit or credit
+                <p className="text-sm text-slate-500">
+                  Select ledger and enter To / By amount
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={addRow}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-black shadow-sm transition hover:bg-blue-700"
               >
                 + Add Row
               </button>
-
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
 
-              <table className="w-full min-w-[750px] border-collapse">
+              <table className="w-full min-w-[800px] border-collapse">
 
                 <thead>
-                  <tr className="bg-slate-100 text-left text-sm text-slate-700">
+                  <tr className="bg-slate-800 text-white">
 
-                    <th className="border-b px-4 py-3">
+                    <th className="w-14 px-4 py-3 text-center text-sm font-bold">
                       #
                     </th>
 
-                    <th className="border-b px-4 py-3">
+                    <th className="px-4 py-3 text-left text-sm font-bold">
                       Ledger Account
                     </th>
 
-                    <th className="border-b px-4 py-3">
+                    <th className="w-32 px-4 py-3 text-center text-sm font-bold">
                       Type
                     </th>
 
-                    <th className="border-b px-4 py-3 text-right">
-                      Amount
+                    <th className="w-40 px-4 py-3 text-right text-sm font-bold">
+                      Debit
                     </th>
 
-                    <th className="border-b px-4 py-3 text-center">
+                    <th className="w-40 px-4 py-3 text-right text-sm font-bold">
+                      Credit
+                    </th>
+
+                    <th className="w-24 px-4 py-3 text-center text-sm font-bold">
                       Action
                     </th>
 
@@ -394,19 +325,17 @@ export default function JournalPage() {
                 </thead>
 
                 <tbody>
-
                   {entries.map((entry, index) => (
                     <tr
                       key={entry.id}
-                      className="hover:bg-slate-50"
+                      className="border-t border-slate-200 hover:bg-slate-50"
                     >
 
-                      <td className="border-b px-4 py-3 text-sm font-medium text-slate-500">
+                      <td className="px-4 py-3 text-center text-sm font-semibold text-slate-600">
                         {index + 1}
                       </td>
 
-                      <td className="border-b px-4 py-3">
-
+                      <td className="px-4 py-3">
                         <select
                           value={entry.ledgerId}
                           onChange={(e) =>
@@ -416,14 +345,10 @@ export default function JournalPage() {
                               e.target.value
                             )
                           }
-                          disabled={ledgerLoading}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-
                           <option value="">
-                            {ledgerLoading
-                              ? "Loading ledgers..."
-                              : "Select Ledger"}
+                            Select Ledger Account
                           </option>
 
                           {ledgers.map((ledger) => (
@@ -431,18 +356,13 @@ export default function JournalPage() {
                               key={ledger.id}
                               value={ledger.id}
                             >
-                              {ledger.code
-                                ? `${ledger.code} - ${ledger.name}`
-                                : ledger.name}
+                              {ledger.name}
                             </option>
                           ))}
-
                         </select>
-
                       </td>
 
-                      <td className="border-b px-4 py-3">
-
+                      <td className="px-4 py-3">
                         <select
                           value={entry.type}
                           onChange={(e) =>
@@ -452,154 +372,185 @@ export default function JournalPage() {
                               e.target.value
                             )
                           }
-                          className={`w-full rounded-lg border px-3 py-2.5 text-sm font-medium ${
-                            entry.type === "debit"
-                              ? "border-blue-200 bg-blue-50 text-blue-700"
-                              : "border-purple-200 bg-purple-50 text-purple-700"
-                          }`}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-blue-500"
                         >
+                          <option value="">
+                            Select
+                          </option>
 
                           <option value="debit">
-                            Debit
+                            By
                           </option>
 
                           <option value="credit">
-                            Credit
+                            To
                           </option>
-
                         </select>
-
                       </td>
 
-                      <td className="border-b px-4 py-3">
-
-                        <div className="relative">
-
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                            ₹
-                          </span>
-
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={entry.amount}
-                            onChange={(e) =>
-                              updateEntry(
-                                entry.id,
-                                "amount",
-                                e.target.value
-                              )
-                            }
-                            placeholder="0.00"
-                            className="w-full rounded-lg border border-slate-300 py-2.5 pl-8 pr-3 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                          />
-
-                        </div>
-
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={
+                            entry.type === "debit"
+                              ? entry.amount
+                              : ""
+                          }
+                          disabled={
+                            entry.type !== "debit"
+                          }
+                          onChange={(e) =>
+                            updateEntry(
+                              entry.id,
+                              "amount",
+                              e.target.value
+                            )
+                          }
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-right text-sm font-semibold outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
+                        />
                       </td>
 
-                      <td className="border-b px-4 py-3 text-center">
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={
+                            entry.type === "credit"
+                              ? entry.amount
+                              : ""
+                          }
+                          disabled={
+                            entry.type !== "credit"
+                          }
+                          onChange={(e) =>
+                            updateEntry(
+                              entry.id,
+                              "amount",
+                              e.target.value
+                            )
+                          }
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-right text-sm font-semibold outline-none focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
+                        />
+                      </td>
 
+                      <td className="px-4 py-3 text-center">
                         <button
                           type="button"
                           onClick={() =>
                             removeRow(entry.id)
                           }
                           disabled={entries.length <= 2}
-                          className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
+                          className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
                         >
                           Remove
                         </button>
-
                       </td>
 
                     </tr>
                   ))}
-
                 </tbody>
 
                 <tfoot>
-
-                  <tr className="bg-slate-50 font-semibold">
+                  <tr className="bg-slate-50">
 
                     <td
                       colSpan="3"
-                      className="border-t px-4 py-4 text-right text-sm"
+                      className="px-4 py-4 text-right text-sm font-bold text-slate-700"
                     >
                       Total
                     </td>
 
-                    <td className="border-t px-4 py-4">
-
-                      <div className="flex justify-between gap-6 text-sm">
-
-                        <span className="text-blue-700">
-                          Dr ₹ {totalDebit.toFixed(2)}
-                        </span>
-
-                        <span className="text-purple-700">
-                          Cr ₹ {totalCredit.toFixed(2)}
-                        </span>
-
-                      </div>
-
+                    <td className="px-4 py-4 text-right text-base font-bold text-slate-800">
+                      ₹ {totalDebit.toFixed(2)}
                     </td>
 
-                    <td className="border-t"></td>
+                    <td className="px-4 py-4 text-right text-base font-bold text-slate-800">
+                      ₹ {totalCredit.toFixed(2)}
+                    </td>
+
+                    <td></td>
 
                   </tr>
-
                 </tfoot>
 
               </table>
-
             </div>
 
-            {/* Balance */}
             <div
-              className={`mt-4 flex items-center justify-between rounded-lg border px-4 py-3 text-sm ${
+              className={`mt-4 flex items-center justify-between rounded-lg border px-4 py-3 ${
                 isBalanced
-                  ? "border-green-200 bg-green-50 text-green-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
+                  ? "border-green-200 bg-green-50"
+                  : "border-amber-200 bg-amber-50"
               }`}
             >
+              <div>
+                <p
+                  className={`text-sm font-bold ${
+                    isBalanced
+                      ? "text-green-700"
+                      : "text-amber-700"
+                  }`}
+                >
+                  {isBalanced
+                    ? "Journal is balanced"
+                    : "Journal is not balanced"}
+                </p>
 
-              <span>
-                {isBalanced
-                  ? "✓ Journal is balanced"
-                  : "⚠ Debit and Credit must be equal"}
-              </span>
+                <p className="text-xs text-slate-500">
+                  Debit and Credit must be equal
+                </p>
+              </div>
 
-              <span className="font-semibold">
-                Difference: ₹{" "}
-                {difference.toFixed(2)}
-              </span>
+              <div className="text-right">
+                <p className="text-xs font-semibold text-slate-500">
+                  Difference
+                </p>
 
+                <p className="text-base font-bold text-slate-800">
+                  ₹ {difference.toFixed(2)}
+                </p>
+              </div>
             </div>
 
-            {/* Error */}
-            {(error || journalError) && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error || journalError}
+            <div className="mt-5">
+              <label className="mb-2 block text-sm font-bold text-slate-700">
+                Narration
+              </label>
+
+              <textarea
+                value={narration}
+                onChange={(e) =>
+                  setNarration(e.target.value)
+                }
+                rows={3}
+                placeholder="Enter reason or description..."
+                className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {successMessage && (
+              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                ✓ {successMessage}
               </div>
             )}
 
-            {/* Success */}
-            {message && (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                ✓ {message}
+            {journalError && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {journalError}
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="mt-5 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
 
               <button
                 type="button"
                 onClick={clearForm}
-                disabled={journalLoading}
-                className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
               >
                 Clear
               </button>
@@ -608,14 +559,13 @@ export default function JournalPage() {
                 type="button"
                 onClick={handleSave}
                 disabled={
-                  journalLoading ||
-                  !isBalanced
+                  journalLoading || !isBalanced
                 }
-                className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg bg-green-600 px-7 py-3 text-sm font-bold text-black shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
                 {journalLoading
                   ? "Saving..."
-                  : "Save Journal"}
+                  : "Save Journal Voucher"}
               </button>
 
             </div>

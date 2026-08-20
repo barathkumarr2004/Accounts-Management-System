@@ -3,25 +3,14 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import {
-  fetchGroups,
-  createGroup,
-  clearGroupError,
-} from "../store/slices/groupSlice";
+import { fetchGroups, createGroup, clearGroupError,} from "../store/slices/groupSlice";
 
 export default function GroupForm() {
   const dispatch = useDispatch();
 
-  const {
-    groups,
-    loading,
-    error,
-  } = useSelector((state) => state.groups);
+  const {groups, loading, error,} = useSelector((state) => state.groups);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    parent_id: "",
-  });
+  const [formData, setFormData] = useState({name: "", parent_id: "",});
 
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -78,11 +67,7 @@ export default function GroupForm() {
 
   // Cancel
   const handleCancel = () => {
-    setFormData({
-      name: "",
-      parent_id: "",
-    });
-
+    setFormData({ name: "", parent_id: "",});
     setSuccessMessage("");
     dispatch(clearGroupError());
   };
@@ -91,9 +76,7 @@ export default function GroupForm() {
     <div className="card shadow-sm">
 
       <div className="card-header bg-white">
-        <h5 className="mb-0">
-          Create Group
-        </h5>
+        <h5 className="mb-0">Create Group</h5>
       </div>
 
       <div className="card-body">
@@ -101,10 +84,7 @@ export default function GroupForm() {
         {/* SUCCESS MESSAGE */}
 
         {successMessage && (
-          <div
-            className="alert alert-success alert-dismissible fade show"
-            role="alert"
-          >
+          <div className="alert alert-success alert-dismissible fade show" role="alert">
             {successMessage}
           </div>
         )}
@@ -112,10 +92,7 @@ export default function GroupForm() {
         {/* ERROR MESSAGE */}
 
         {error && (
-          <div
-            className="alert alert-danger"
-            role="alert"
-          >
+          <div className="alert alert-danger" role="alert">
             {error}
           </div>
         )}
@@ -126,10 +103,7 @@ export default function GroupForm() {
 
           <div className="mb-3">
 
-            <label
-              htmlFor="name"
-              className="form-label"
-            >
+            <label htmlFor="name" className="form-label">
               Group Name
             </label>
 
@@ -150,10 +124,7 @@ export default function GroupForm() {
 
           <div className="mb-3">
 
-            <label
-              htmlFor="parent_id"
-              className="form-label"
-            >
+            <label htmlFor="parent_id" className="form-label">
               Under
             </label>
 

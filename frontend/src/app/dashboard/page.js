@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default function Dashboard() {
   const today = new Date();
   const options = { day: '2-digit', month: 'short', year: 'numeric' };
-  const formattedDate = today.toLocaleDateString('en-GB', options).replace(/ /g, '-'); 
+  const formattedDate = today.toLocaleDateString('en-GB', options).replace(/ /g, '-');  //global space to -
   
   const menuItems = [
     { name: 'Chart of Accounts', desc: 'View all Natures, Groups & Ledgers', link: '/chartsofaccounts', icon: 'bi-bar-chart-fill' },

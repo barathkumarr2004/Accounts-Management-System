@@ -11,7 +11,7 @@ export default function Sidebar() {
       name: "Dashboard",
       path: "/dashboard",
     },
-     {
+    {
       name: "Chart of Accounts",
       path: "/chartsofaccounts",
     },

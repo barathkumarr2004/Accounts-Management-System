@@ -1,5 +1,5 @@
 const express = require('express');
-const { getCOA } = require('../controllers/chartOfAccountsController');
+const { getCOA } = require('../controllers/chartofAccountsController');
 const router = express.Router();
 
 router.get('/', getCOA);

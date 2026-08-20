@@ -1,12 +1,4 @@
 const groupModel = require("../models/groupModel");
-
-
-/*
-|--------------------------------------------------------------------------
-| GET /api/groups
-|--------------------------------------------------------------------------
-*/
-
 const getGroups = async (req, res) => {
   try {
     const groups = await groupModel.getAllGroups();
@@ -26,22 +18,10 @@ const getGroups = async (req, res) => {
   }
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| POST /api/groups
-|--------------------------------------------------------------------------
-*/
-
 const createGroup = async (req, res) => {
   try {
     const { name, parent_id } = req.body;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validate name
-    |--------------------------------------------------------------------------
-    */
 
     const groupName = name?.trim();
 
@@ -52,12 +32,6 @@ const createGroup = async (req, res) => {
       });
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Convert parent_id
-    |--------------------------------------------------------------------------
-    */
 
     let parentId = null;
 
@@ -77,12 +51,6 @@ const createGroup = async (req, res) => {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Check parent group
-    |--------------------------------------------------------------------------
-    */
-
     let parentGroup = null;
 
     if (parentId !== null) {
@@ -96,12 +64,6 @@ const createGroup = async (req, res) => {
       }
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check duplicate
-    |--------------------------------------------------------------------------
-    */
 
     const duplicate =
       await groupModel.findDuplicateGroup(
@@ -117,36 +79,14 @@ const createGroup = async (req, res) => {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Nature ID
-    |--------------------------------------------------------------------------
-    |
-    | Child group:
-    |     Parent nature_id inherit
-    |
-    */
-
     const natureId = parentGroup
       ? parentGroup.nature_id
       : null;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Generate code
-    |--------------------------------------------------------------------------
-    */
-
     const code =
       await groupModel.getNextGroupCode();
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Insert
-    |--------------------------------------------------------------------------
-    */
 
     const groupId =
       await groupModel.insertGroup({
@@ -157,16 +97,9 @@ const createGroup = async (req, res) => {
       });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Return created group
-    |--------------------------------------------------------------------------
-    */
-
     const createdGroup =
       await groupModel.getCreatedGroup(groupId);
-
-
+ 
     return res.status(201).json({
       success: true,
       message: "Group created successfully",

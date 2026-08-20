@@ -1,13 +1,6 @@
 const ledgerModel = require("../models/ledgerModel");
 const groupModel = require("../models/groupModel");
 
-
-/*
-|--------------------------------------------------------------------------
-| GET /api/ledgers
-|--------------------------------------------------------------------------
-*/
-
 const getLedgers = async (req, res) => {
   try {
     const ledgers =
@@ -29,11 +22,6 @@ const getLedgers = async (req, res) => {
 };
 
 
-/*
-|--------------------------------------------------------------------------
-| POST /api/ledgers
-|--------------------------------------------------------------------------
-*/
 
 const createLedger = async (req, res) => {
   try {
@@ -43,11 +31,6 @@ const createLedger = async (req, res) => {
     } = req.body;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Validate name
-    |--------------------------------------------------------------------------
-    */
 
     const ledgerName = name?.trim();
 
@@ -58,12 +41,6 @@ const createLedger = async (req, res) => {
       });
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validate group_id
-    |--------------------------------------------------------------------------
-    */
 
     if (
       group_id === undefined ||
@@ -87,12 +64,6 @@ const createLedger = async (req, res) => {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Check group exists
-    |--------------------------------------------------------------------------
-    */
-
     const group =
       await groupModel.getGroupById(groupId);
 
@@ -103,12 +74,6 @@ const createLedger = async (req, res) => {
       });
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check duplicate ledger
-    |--------------------------------------------------------------------------
-    */
 
     const duplicate =
       await ledgerModel.findDuplicateLedger(
@@ -124,21 +89,9 @@ const createLedger = async (req, res) => {
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Generate code
-    |--------------------------------------------------------------------------
-    */
-
     const code =
       await ledgerModel.getNextLedgerCode();
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Insert
-    |--------------------------------------------------------------------------
-    */
 
     const ledgerId =
       await ledgerModel.insertLedger({
@@ -148,11 +101,6 @@ const createLedger = async (req, res) => {
       });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Return created ledger
-    |--------------------------------------------------------------------------
-    */
 
     const createdLedger =
       await ledgerModel.getCreatedLedger(

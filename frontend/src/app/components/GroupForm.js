@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import { fetchGroups, createGroup, clearGroupError,} from "../store/slices/groupSlice";
+import {fetchGroups,createGroup,clearGroupError,} from "../store/slices/groupSlice";
 
 export default function GroupForm() {
   const dispatch = useDispatch();
 
-  const {groups, loading, error,} = useSelector((state) => state.groups);
+  const {groups,loading, error,} = useSelector((state) => state.groups);
 
-  const [formData, setFormData] = useState({name: "", parent_id: "",});
+  const [formData, setFormData] = useState({ name: "", parent_id: "",});
 
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -23,12 +23,9 @@ export default function GroupForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value, }));
 
-    // Remove old error when user starts correcting the form
+    // Remove old errors
     if (error) {
       dispatch(clearGroupError());
     }
@@ -45,64 +42,53 @@ export default function GroupForm() {
     try {
       await dispatch(createGroup(formData)).unwrap();
 
-      // Show success message
       setSuccessMessage("Group created successfully");
 
       // Clear form
-      setFormData({
-        name: "",
-        parent_id: "",
-      });
+      setFormData({name: "", parent_id: "",});
 
-      // Hide success message after 3 seconds
+      // Hide success message 
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
 
     } catch (error) {
-      // Redux error will be shown automatically
+      // Redux errors
       console.error("Create group error:", error);
     }
   };
 
   // Cancel
   const handleCancel = () => {
-    setFormData({ name: "", parent_id: "",});
+    setFormData({name: "", parent_id: "",});
     setSuccessMessage("");
     dispatch(clearGroupError());
   };
 
   return (
     <div className="card shadow-sm">
-
       <div className="card-header bg-white">
         <h5 className="mb-0">Create Group</h5>
       </div>
 
       <div className="card-body">
-
         {/* SUCCESS MESSAGE */}
-
         {successMessage && (
-          <div className="alert alert-success alert-dismissible fade show" role="alert">
+          <div className="alert alert-success alert-dismissible fade show" role="alert" >
             {successMessage}
           </div>
         )}
 
         {/* ERROR MESSAGE */}
-
         {error && (
-          <div className="alert alert-danger" role="alert">
+          <div className="alert alert-danger" role="alert"  >
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-
           {/* GROUP NAME */}
-
           <div className="mb-3">
-
             <label htmlFor="name" className="form-label">
               Group Name
             </label>
@@ -117,13 +103,10 @@ export default function GroupForm() {
               onChange={handleChange}
               required
             />
-
           </div>
 
           {/* UNDER */}
-
           <div className="mb-3">
-
             <label htmlFor="parent_id" className="form-label">
               Under
             </label>
@@ -135,7 +118,6 @@ export default function GroupForm() {
               value={formData.parent_id}
               onChange={handleChange}
             >
-
               <option value="">
                 Primary
               </option>
@@ -148,13 +130,10 @@ export default function GroupForm() {
                   {group.name}
                 </option>
               ))}
-
             </select>
-
           </div>
 
           <div className="d-flex justify-content-end gap-2">
-
             <button
               type="button"
               className="btn btn-secondary"
@@ -170,11 +149,8 @@ export default function GroupForm() {
             >
               {loading ? "Saving..." : "Save"}
             </button>
-
           </div>
-
         </form>
-
       </div>
     </div>
   );

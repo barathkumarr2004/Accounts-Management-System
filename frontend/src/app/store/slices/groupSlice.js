@@ -7,27 +7,23 @@ const initialState = {
   error: null,
 };
 
-export const fetchGroups = createAsyncThunk(
-  "groups/fetchGroups",
-  async (_, { rejectWithValue }) => {
+export const fetchGroups = createAsyncThunk("groups/fetchGroups",async (_, { rejectWithValue }) => {
     try {
       const result = await getGroups();
-
       return result;
-    } catch (error) {
+    } 
+    catch (error) {
       return rejectWithValue(error.message || "Unable to load groups");
     }
   }
 );
 
-export const createGroup = createAsyncThunk(
-  "groups/createGroup",
-  async (data, { rejectWithValue }) => {
+export const createGroup = createAsyncThunk("groups/createGroup",async (data, { rejectWithValue }) => {
     try {
       const result = await createGroupApi(data);
-
       return result;
-    } catch (error) {
+    } 
+    catch (error) {
       return rejectWithValue(error.message || "Unable to create group");
     }
   }
@@ -45,10 +41,8 @@ const groupSlice = createSlice({
   },
 
   extraReducers: (builder) => {
-    builder
-
-      // Fetch Groups
-      .addCase(fetchGroups.pending, (state) => {
+    //fetchgroup
+    builder.addCase(fetchGroups.pending, (state) => {
         state.loading = true;
         state.error = null;
       })

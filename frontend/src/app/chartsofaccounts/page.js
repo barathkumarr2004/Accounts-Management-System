@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useGetChartOfAccountsQuery } from "@/app/store/api/chartOfAccountsApi";
 
 const TreeNode = ({ node, level = 0 }) => {
-  const [isOpen, setIsOpen] = useState(false); // 👈 idhu dhan change. Start la ellam close
+  const [isOpen, setIsOpen] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
 
   return (

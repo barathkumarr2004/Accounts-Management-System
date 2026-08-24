@@ -57,18 +57,34 @@ export default function JournalPage() {
   }, [dispatch]);
 
 useEffect(() => {
-  if (!journals.length) {
+  if (!journals || journals.length === 0) {
     setVoucherNumber("JV-00001");
     return;
   }
 
-  const latestVoucher = journals[0]?.voucher_number;
+  const voucherNumbers = journals
+    .map((journal) => {
+      const voucherNumber = journal?.voucher_number;
 
-  if (latestVoucher) {
-    setVoucherNumber(latestVoucher);
-  } else {
-    setVoucherNumber("JV-00001");
-  }
+      if (!voucherNumber) {
+        return 0;
+      }
+
+      const number = parseInt(
+        String(voucherNumber).replace("JV-", ""),
+        10
+      );
+
+      return Number.isNaN(number) ? 0 : number;
+    });
+
+  const highestVoucherNumber = Math.max(...voucherNumbers);
+
+  const nextVoucherNumber = highestVoucherNumber + 1;
+
+  setVoucherNumber(
+    `JV-${String(nextVoucherNumber).padStart(5, "0")}`
+  );
 }, [journals]);
 
   const addRow = () => {

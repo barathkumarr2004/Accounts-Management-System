@@ -13,7 +13,7 @@ export default function Dashboard() {
     { name: 'Journal Voucher', desc: 'Enter Journal Entries', link: '/journal', icon: 'bi-receipt-cutoff' },
     { name: 'Day Book', desc: 'View Daily Transactions', link: '/daybook', icon: 'bi-calendar-date-fill' },
     { name: 'Balance sheet', desc: 'xxxxxxx', link: '/balancesheet', icon: 'bi-calendar-date-fill' },
-    { name: 'Profit/Loss', desc: 'View profit/loss', link: '/profit-loss', icon: 'bi-calendar-date-fill' },
+    { name: 'Profit & Loss', desc: 'yyyyyyy', link: '/profitloss', icon: 'bi-calendar-date-fill' },
   ];
 
   return (

@@ -20,12 +20,10 @@ app.use("/api/ledgers", ledgerRoutes);
 app.use("/api/chartsofaccounts", chartOfAccountsRoutes); 
 app.use("/api/journals", journalRoutes);
 
-//404 error
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "API route not found" });
 });
 
-//express gives a middleware (global error)
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
   res.status(500).json({ success: false, message: "Internal server error" });

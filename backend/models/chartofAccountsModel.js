@@ -1,4 +1,4 @@
-const db = require('../config/db'); // unga db connection file
+const db = require('../config/db'); 
 
 const getChartOfAccounts = async () => {
   const [natures] = await db.query('SELECT id, name FROM nature ORDER BY id');

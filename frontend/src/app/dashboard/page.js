@@ -1,8 +1,4 @@
 'use client'; 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 import Link from 'next/link';
 
 export default function Dashboard() {
@@ -45,10 +41,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-<<<<<<< Updated upstream
+
       
-=======
->>>>>>> Stashed changes
+
       <div className="mt-4 bg-white p-4 rounded-lg shadow text-center">
         <p className="text-gray-600 mb-0">
           Financial Year: <b>2026-2027</b> | Today: <b>{formattedDate}</b>

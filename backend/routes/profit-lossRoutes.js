@@ -1,8 +1,8 @@
-const express=require("express");
-const router=express.router();
+const express = require("express");
+const router = express.Router();
 
-const {getProfitLoss}=require("../controllers/profit-lossController");
+const profitLossController = require("../controllers/profit-lossController");
 
-router.get("/",getProfitLoss);
+router.get("/", profitLossController.getProfitLoss);
 
-module.exports=router;
+module.exports = router;

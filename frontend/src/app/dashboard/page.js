@@ -1,4 +1,4 @@
-'use client'; // date client la dhan calculate aaganum
+'use client'; 
 
 import Link from 'next/link';
 
@@ -13,6 +13,7 @@ export default function Dashboard() {
     { name: 'Ledgers', desc: 'Create & Manage Ledgers', link: '/ledgers', icon: 'bi-journal-bookmark-fill' },
     { name: 'Journal Voucher', desc: 'Enter Journal Entries', link: '/journal', icon: 'bi-receipt-cutoff' },
     { name: 'Day Book', desc: 'View Daily Transactions', link: '/daybook', icon: 'bi-calendar-date-fill' },
+    { name: 'Balance sheet', desc: 'xxxxxxx', link: '/balancesheet', icon: 'bi-calendar-date-fill' },
   ];
 
   return (
@@ -41,7 +42,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Bottom Date Card */}
+      
       <div className="mt-4 bg-white p-4 rounded-lg shadow text-center">
         <p className="text-gray-600 mb-0">
           Financial Year: <b>2026-2027</b> | Today: <b>{formattedDate}</b>

@@ -5,7 +5,6 @@ const getChartOfAccounts = async () => {
   const [groups] = await db.query('SELECT id, name, nature_id, parent_id FROM `groups` ORDER BY parent_id, id');
   const [ledgers] = await db.query('SELECT id, name, group_id FROM ledgers ORDER BY name');
 
-  // Build tree
   const groupMap = {};
   groups.forEach(g => groupMap[g.id] = {...g, children: [] });
 

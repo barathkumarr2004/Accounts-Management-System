@@ -31,6 +31,10 @@ export default function Sidebar() {
       name: "Day Book",
       path: "/daybook",
     },
+    {
+      name: "Balance Sheet",
+      path: "/balancesheet",
+    },
   ];
 
   return (

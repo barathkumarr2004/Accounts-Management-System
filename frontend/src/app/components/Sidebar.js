@@ -35,6 +35,10 @@ export default function Sidebar() {
       name: "Balance Sheet",
       path: "/balancesheet",
     },
+    {
+      name: "Profit & loss",
+      path: "/profitloss",
+    },
   ];
 
   return (

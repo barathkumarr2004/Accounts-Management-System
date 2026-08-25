@@ -1,0 +1,171 @@
+// const db = require("../config/db");
+
+// const getBalanceSheet = async (req, res) => {
+//   try {
+//     const [ledgers] = await db.query("SELECT * FROM ledgers");
+//     const [groups] = await db.query("SELECT * FROM `groups`");
+//     const [jes] = await db.query("SELECT * FROM journal_entries");
+
+//     const gMap = {};
+//     groups.forEach(g => gMap[g.id] = g);
+
+//     const getNature = (gid) => {
+//       let c = gMap[gid], d=0;
+//       while(c && d<10){
+//         if(c.nature_id) return Number(c.nature_id);
+//         if(c.parent_id) c = gMap[c.parent_id];
+//         else break;
+//         d++;
+//       }
+//       return null;
+//     };
+
+//     let bal = {};
+//     ledgers.forEach(l => bal[l.id] = { name: l.name, group_id: l.group_id, dr:0, cr:0 });
+//     jes.forEach(j => {
+//       if(bal[j.ledger_id]){
+//         bal[j.ledger_id].dr+=Number(j.debit||0);
+//         bal[j.ledger_id].cr+=Number(j.credit||0);
+//       }
+//     });
+
+//     let liabilities = [];
+//     let assets = [];
+
+//     Object.values(bal).forEach(b => {
+//       const closing = b.dr - b.cr;
+//       if(closing === 0) return;
+
+//       const amount = Math.abs(closing); // Credit a irunthalum amount mattum eduppom
+//       const nid = getNature(b.group_id);
+//       const gName = gMap[b.group_id]?.name || "";
+
+//       // NEENGA SONNA CORRECT LOGIC:
+//       if (nid === 3) {
+//         // Liabilities group na - EPPAVUME Liabilities la
+//         liabilities.push({ name: b.name, amount, group: gName });
+//       } else if (nid === 1 || nid === 2) {
+//         // Assets / Bank group na - EPPAVUME Assets la
+//         assets.push({ name: b.name, amount, group: gName });
+//       }
+//       // nid 4,5 (Income, Expense) - SKIP - Engayume vara koodathu
+//     });
+
+//     res.json({
+//       success: true,
+//       liabilities,
+//       assets,
+//       totalLiabilities: liabilities.reduce((a,b)=>a+b.amount,0),
+//       totalAssets: assets.reduce((a,b)=>a+b.amount,0)
+//     });
+
+//   } catch(err){
+//     console.error(err);
+//     res.status(500).json({success:false, message: err.message});
+//   }
+// };
+
+// module.exports = { getBalanceSheet };
+
+
+
+
+const db = require("../config/db");
+
+const getBalanceSheet = async (req, res) => {
+  try {
+    const [ledgers] = await db.query("SELECT * FROM ledgers");
+    const [groups] = await db.query("SELECT * FROM `groups`");
+    const [jes] = await db.query("SELECT * FROM journal_entries");
+
+    const gMap = {};
+    groups.forEach(g => gMap[g.id] = g);
+
+    const getNature = (gid) => {
+      let c = gMap[gid], d=0;
+      while(c && d<10){
+        if(c.nature_id) return Number(c.nature_id);
+        if(c.parent_id) c = gMap[c.parent_id];
+        else break;
+        d++;
+      }
+      return null;
+    };
+
+    const getGroupChain = (gid) => {
+      let names = [];
+      let c = gMap[gid], d=0;
+      while(c && d<10){
+        names.push((c.name||"").toLowerCase());
+        if(c.parent_id) c = gMap[c.parent_id];
+        else break;
+        d++;
+      }
+      return names.join(" ");
+    };
+
+    let bal = {};
+    ledgers.forEach(l => bal[l.id] = { name: l.name, group_id: l.group_id, dr:0, cr:0 });
+    jes.forEach(j => {
+      if(bal[j.ledger_id]){
+        bal[j.ledger_id].dr+=Number(j.debit||0);
+        bal[j.ledger_id].cr+=Number(j.credit||0);
+      }
+    });
+
+    let liabilities = [];
+    let assets = [];
+    let directIncome = 0, indirectIncome = 0;
+    let directExpense = 0, indirectExpense = 0;
+
+    Object.values(bal).forEach(b => {
+      const closing = b.dr - b.cr;
+      if(closing === 0) return;
+      const amount = Math.abs(closing);
+      const nid = getNature(b.group_id);
+      const chain = getGroupChain(b.group_id);
+
+      if (nid === 3) {
+        liabilities.push({ name: b.name, amount, isPnl: false });
+      } else if (nid === 1 || nid === 2) {
+        assets.push({ name: b.name, amount, isPnl: false });
+      } else if (nid === 4) {
+        if(chain.includes("direct")) directIncome += (b.cr - b.dr);
+        else indirectIncome += (b.cr - b.dr);
+      } else if (nid === 5) {
+        if(chain.includes("direct") || chain.includes("purchase")) directExpense += (b.dr - b.cr);
+        else indirectExpense += (b.dr - b.cr);
+      }
+    });
+
+    // TALLY PRIME FORMULA
+    const totalIncome = directIncome + indirectIncome;
+    const totalExpense = directExpense + indirectExpense;
+    const netProfit = totalIncome - totalExpense;
+
+    let pnl = null;
+    if (netProfit > 0) {
+      pnl = { type: "Profit", amount: netProfit, totalIncome, totalExpense };
+      liabilities.push({ name: "Profit & Loss A/c", amount: netProfit, isPnl: true, type: "Profit" });
+    } else if (netProfit < 0) {
+      const loss = Math.abs(netProfit);
+      pnl = { type: "Loss", amount: loss, totalIncome, totalExpense };
+      assets.push({ name: "Profit & Loss A/c", amount: loss, isPnl: true, type: "Loss" });
+    }
+
+    res.json({
+      success: true,
+      liabilities,
+      assets,
+      pnl,
+      totalLiabilities: liabilities.reduce((a,b)=>a+b.amount,0),
+      totalAssets: assets.reduce((a,b)=>a+b.amount,0)
+    });
+
+  } catch(err){
+    console.error(err);
+    res.status(500).json({success:false, message: err.message});
+  }
+};
+
+module.exports = { getBalanceSheet };

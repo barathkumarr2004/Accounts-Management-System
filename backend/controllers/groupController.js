@@ -1,5 +1,4 @@
 const groupModel = require("../models/groupModel");
-
 const getGroups = async (req, res) => {
   try {
     const groups = await groupModel.getAllGroups();
@@ -59,8 +58,8 @@ const createGroup = async (req, res) => {
     const createdGroup =await groupModel.getCreatedGroup(groupId);
 
     return res.status(201).json({success: true, message: "Group created successfully", data: createdGroup,});
-} 
-catch (error) {
+    } 
+    catch (error) {
     console.error("CREATE GROUP ERROR:", error);
     return res.status(500).json({success: false,message: "Unable to create group",});
   }

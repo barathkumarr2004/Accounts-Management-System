@@ -25,7 +25,7 @@ const TreeNode = ({ node, level = 0 }) => {
         </span>
       </div>
 
-      {isOpen && hasChildren && ( // 👈 idhu open ah irundha mattum dhan children kaatum
+      {isOpen && hasChildren && (
         <div>
           {node.children.map((child) => (
             <TreeNode key={`${child.type}-${child.id}`} node={child} level={level + 1} />

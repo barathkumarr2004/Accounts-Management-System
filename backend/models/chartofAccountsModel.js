@@ -1,11 +1,10 @@
-const db = require('../config/db'); // unga db connection file
+const db = require('../config/db'); 
 
 const getChartOfAccounts = async () => {
   const [natures] = await db.query('SELECT id, name FROM nature ORDER BY id');
   const [groups] = await db.query('SELECT id, name, nature_id, parent_id FROM `groups` ORDER BY parent_id, id');
   const [ledgers] = await db.query('SELECT id, name, group_id FROM ledgers ORDER BY name');
 
-  // Build tree
   const groupMap = {};
   groups.forEach(g => groupMap[g.id] = {...g, children: [] });
 

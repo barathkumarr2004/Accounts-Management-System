@@ -15,10 +15,7 @@ const store = configureStore({
     [chartOfAccountsApi.reducerPath]: chartOfAccountsApi.reducer,
   },
 
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(
-      chartOfAccountsApi.middleware
-    ),
+  middleware: (getDefaultMiddleware) =>getDefaultMiddleware().concat(chartOfAccountsApi.middleware),
 });
 
 export default store;

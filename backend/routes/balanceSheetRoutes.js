@@ -1,15 +1,9 @@
-// const express = require('express');
-// const router = express.Router();
-// const { getBalanceSheet } = require('../controllers/balanceSheetController');
-// router.get('/', getBalanceSheet);
-// module.exports = router;
-
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { getBalanceSheet } = require('../controllers/balanceSheetController');
-router.get('/', getBalanceSheet);
+const { getBalanceSheet, getVouchersByLedger, getVoucherDetail } = require("../controllers/balanceSheetController");
+
+router.get("/", getBalanceSheet);
+router.get("/ledgers/:id/vouchers", getVouchersByLedger);
+router.get("/vouchers/:voucherId", getVoucherDetail);
+
 module.exports = router;
-
-
-

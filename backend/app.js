@@ -7,7 +7,6 @@ const chartOfAccountsRoutes = require('./routes/chartofAccountsRoutes');
 const journalRoutes = require("./routes/journalRoutes");
 const balanceSheetRoutes = require("./routes/balanceSheetRoutes");
 const profit_lossRoutes = require("./routes/profit-lossRoutes");
-
 const app = express();
 
 app.use(cors({ origin: "http://localhost:3000" }));

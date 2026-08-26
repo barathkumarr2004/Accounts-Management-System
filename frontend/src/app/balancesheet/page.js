@@ -590,7 +590,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-
 const BalanceSheet = () => {
   const [data, setData] = useState({ liabilities: [], assets: [], totalLiabilities: 0, totalAssets: 0, pnl: null });
 

@@ -33,6 +33,7 @@ const getProfitLoss = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("PROFIT LOSS ERROR:", error);
         return res.status(500).json({
             success: false,
             message: "Unable to read data"

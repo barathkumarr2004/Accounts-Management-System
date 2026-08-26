@@ -3,14 +3,14 @@ const db = require("../config/db");
 const getProfitLossData = async () => {
     const [rows] = await db.execute(`
         SELECT 
-            n.nature_name,
+            n.name AS nature_name,
             l.name AS ledger_name,
             COALESCE(SUM(je.debit), 0) AS total_dr,
             COALESCE(SUM(je.credit), 0) AS total_cr
         FROM journal_entries je
         JOIN ledgers l 
             ON je.ledger_id = l.id
-        JOIN groups g 
+        JOIN \`groups\` g 
             ON l.group_id = g.id
         JOIN nature n 
             ON g.nature_id = n.id

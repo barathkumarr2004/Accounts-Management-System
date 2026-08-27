@@ -60,10 +60,6 @@ export default function ProfitLossPage() {
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mb-1 text-sm font-medium text-slate-500">
-              Accounts Management
-            </p>
-
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
               Profit & Loss A/c
             </h1>
@@ -77,7 +73,7 @@ export default function ProfitLossPage() {
             type="button"
             onClick={fetchProfitLoss}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className={loading ? "animate-spin" : ""}>↻</span>
             Refresh

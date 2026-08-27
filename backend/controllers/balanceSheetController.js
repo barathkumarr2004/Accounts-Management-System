@@ -1,76 +1,5 @@
-// const db = require("../config/db");
-
-// const getBalanceSheet = async (req, res) => {
-//   try {
-//     const [ledgers] = await db.query("SELECT * FROM ledgers");
-//     const [groups] = await db.query("SELECT * FROM `groups`");
-//     const [jes] = await db.query("SELECT * FROM journal_entries");
-
-//     const gMap = {};
-//     groups.forEach(g => gMap[g.id] = g);
-
-//     const getNature = (gid) => {
-//       let c = gMap[gid], d=0;
-//       while(c && d<10){
-//         if(c.nature_id) return Number(c.nature_id);
-//         if(c.parent_id) c = gMap[c.parent_id];
-//         else break;
-//         d++;
-//       }
-//       return null;
-//     };
-
-//     let bal = {};
-//     ledgers.forEach(l => bal[l.id] = { name: l.name, group_id: l.group_id, dr:0, cr:0 });
-//     jes.forEach(j => {
-//       if(bal[j.ledger_id]){
-//         bal[j.ledger_id].dr+=Number(j.debit||0);
-//         bal[j.ledger_id].cr+=Number(j.credit||0);
-//       }
-//     });
-
-//     let liabilities = [];
-//     let assets = [];
-
-//     Object.values(bal).forEach(b => {
-//       const closing = b.dr - b.cr;
-//       if(closing === 0) return;
-
-//       const amount = Math.abs(closing); // Credit a irunthalum amount mattum eduppom
-//       const nid = getNature(b.group_id);
-//       const gName = gMap[b.group_id]?.name || "";
-
-//       // NEENGA SONNA CORRECT LOGIC:
-//       if (nid === 3) {
-//         // Liabilities group na - EPPAVUME Liabilities la
-//         liabilities.push({ name: b.name, amount, group: gName });
-//       } else if (nid === 1 || nid === 2) {
-//         // Assets / Bank group na - EPPAVUME Assets la
-//         assets.push({ name: b.name, amount, group: gName });
-//       }
-//       // nid 4,5 (Income, Expense) - SKIP - Engayume vara koodathu
-//     });
-
-//     res.json({
-//       success: true,
-//       liabilities,
-//       assets,
-//       totalLiabilities: liabilities.reduce((a,b)=>a+b.amount,0),
-//       totalAssets: assets.reduce((a,b)=>a+b.amount,0)
-//     });
-
-//   } catch(err){
-//     console.error(err);
-//     res.status(500).json({success:false, message: err.message});
-//   }
-// };
-
-// module.exports = { getBalanceSheet };
-
-
-
-
 const db = require("../config/db");
+const model = require("../models/balanceSheetModel"); // <-- ithu mattum puthusa add pannen da
 
 const getBalanceSheet = async (req, res) => {
   try {
@@ -105,7 +34,7 @@ const getBalanceSheet = async (req, res) => {
     };
 
     let bal = {};
-    ledgers.forEach(l => bal[l.id] = { name: l.name, group_id: l.group_id, dr:0, cr:0 });
+    ledgers.forEach(l => bal[l.id] = { id: l.id, name: l.name, group_id: l.group_id, dr:0, cr:0 });
     jes.forEach(j => {
       if(bal[j.ledger_id]){
         bal[j.ledger_id].dr+=Number(j.debit||0);
@@ -126,9 +55,9 @@ const getBalanceSheet = async (req, res) => {
       const chain = getGroupChain(b.group_id);
 
       if (nid === 3) {
-        liabilities.push({ name: b.name, amount, isPnl: false });
+        liabilities.push({ id: b.id, name: b.name, amount, isPnl: false });
       } else if (nid === 1 || nid === 2) {
-        assets.push({ name: b.name, amount, isPnl: false });
+        assets.push({ id: b.id, name: b.name, amount, isPnl: false });
       } else if (nid === 4) {
         if(chain.includes("direct")) directIncome += (b.cr - b.dr);
         else indirectIncome += (b.cr - b.dr);
@@ -168,4 +97,27 @@ const getBalanceSheet = async (req, res) => {
   }
 };
 
-module.exports = { getBalanceSheet };
+// ===== ITHU MATTUM PUTHUSA ADD PANNEN DA =====
+const getVouchersByLedger = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vouchers = await model.getLedgerVouchers(id);
+    res.json({ success: true, vouchers });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const getVoucherDetail = async (req, res) => {
+  try {
+    const { voucherId } = req.params;
+    const data = await model.getVoucherFullDetail(voucherId);
+    res.json({ success: true,...data });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getBalanceSheet, getVouchersByLedger, getVoucherDetail };

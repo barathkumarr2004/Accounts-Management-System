@@ -1,161 +1,408 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import React, { useEffect, useState } from "react";
+
+const API_URL = "http://localhost:5000/api/profit-loss";
+
+const formatAmount = (value) => {
+  return `₹${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
 export default function ProfitLossPage() {
-  const [leftData, setLeftData] = useState([]); // Expenses
-  const [rightData, setRightData] = useState([]); // Incomes
-  const [totals, setTotals] = useState({ left: 0, right: 0, profit: 0, loss: 0 });
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchProfitLoss = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(API_URL, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch Profit & Loss data");
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || "Unable to load data");
+      }
+
+      setData(result.data);
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchProfitLoss();
   }, []);
 
-  const fetchProfitLoss = async () => {
-    // 1. Get your data - change this to your actual API / supabase calls
-    // I am assuming you have same tables as balance sheet
-    const ledgersRes = await fetch("/api/ledgers").then(r => r.json());
-    const groupsRes = await fetch("/api/groups").then(r => r.json());
-    const entriesRes = await fetch("/api/journal-entries").then(r => r.json());
-    // entries = [{ ledger_id, dr_amount, cr_amount }]
+  const expenseRows =
+    data?.rows?.filter((row) => row.nature_name === "Expenses") || [];
 
-    const groupsMap = {};
-    groupsRes.forEach(g => groupsMap[g.id] = g);
-
-    // 2. Calculate closing for each ledger
-    const ledgerClosing = {};
-    ledgersRes.forEach(l => {
-      ledgerClosing[l.id] = { ledger: l, dr: 0, cr: 0 };
-    });
-
-    entriesRes.forEach(e => {
-      if (ledgerClosing[e.ledger_id]) {
-        ledgerClosing[e.ledger_id].dr += Number(e.dr_amount || 0);
-        ledgerClosing[e.ledger_id].cr += Number(e.cr_amount || 0);
-      }
-    });
-
-    const expenses = [];
-    const incomes = [];
-    let totalExp = 0;
-    let totalInc = 0;
-
-    Object.values(ledgerClosing).forEach(({ ledger, dr, cr }) => {
-      const closing = dr - cr; // +ve = Dr, -ve = Cr
-      const gInfo = groupsMap[ledger.group_id];
-      if (!gInfo) return;
-
-      const nature_id = gInfo.nature_id; // 3=Income, 4=Expense
-      const nameLower = ledger.name.toLowerCase();
-
-      // Tally Rule:
-      // nature 4 = Expense -> Debit balance = Expense (positive closing)
-      // nature 3 = Income -> Credit balance = Income (negative closing)
-
-      if (nature_id === 4 || gInfo.name.toLowerCase().includes("expense") || nameLower.includes("rent") || nameLower.includes("salary")) {
-        if (closing > 0) {
-          expenses.push({ name: ledger.name, amount: closing });
-          totalExp += closing;
-        } else if (closing < 0) {
-          // Negative expense = actually income (rare case)
-          incomes.push({ name: ledger.name, amount: Math.abs(closing) });
-          totalInc += Math.abs(closing);
-        }
-      }
-
-      if (nature_id === 3 || gInfo.name.toLowerCase().includes("income") || nameLower.includes("sales") || nameLower.includes("service")) {
-        if (closing < 0) {
-          incomes.push({ name: ledger.name, amount: Math.abs(closing) });
-          totalInc += Math.abs(closing);
-        } else if (closing > 0) {
-          expenses.push({ name: ledger.name, amount: closing });
-          totalExp += closing;
-        }
-      }
-    });
-
-    // 3. Calculate Net Profit / Loss
-    let profit = 0;
-    let loss = 0;
-    let finalLeftTotal = totalExp;
-    let finalRightTotal = totalInc;
-
-    if (totalInc > totalExp) {
-      profit = totalInc - totalExp;
-      finalLeftTotal = totalExp + profit; // Left = Expense + Net Profit
-    } else {
-      loss = totalExp - totalInc;
-      finalRightTotal = totalInc + loss; // Right = Income + Net Loss
-    }
-
-    setLeftData(expenses);
-    setRightData(incomes);
-    setTotals({ left: finalLeftTotal, right: finalRightTotal, profit, loss, totalExp, totalInc });
-  };
+  const incomeRows =
+    data?.rows?.filter((row) => row.nature_name === "Income") || [];
 
   return (
-    <div className="p-4 bg-[#f0f0f0] min-h-screen">
-      <h1 className="text-xl font-bold text-center mb-4">Profit & Loss A/c</h1>
+    <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-1 text-sm font-medium text-slate-500">
+              Accounts Management
+            </p>
 
-      <div className="max-w-5xl mx-auto bg-white border border-black flex">
-        {/* LEFT - Expenses */}
-        <div className="w-1/2 border-r border-black">
-          <div className="flex justify-between bg-gray-100 p-2 border-b border-black font-bold">
-            <span>Particulars</span>
-            <span>Amount</span>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+              Profit & Loss A/c
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Income and Expenses Statement
+            </p>
           </div>
-          <div className="p-2 min-h-[400px]">
-            {leftData.map((item, i) => (
-              <div key={i} className="flex justify-between py-1">
-                <span>{item.name}</span>
-                <span>{item.amount.toFixed(2)}</span>
-              </div>
-            ))}
-            {totals.profit > 0 && (
-              <div className="flex justify-between py-1 font-bold border-t mt-2">
-                <span>Net Profit</span>
-                <span>{totals.profit.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-between p-2 border-t border-black font-bold bg-gray-100">
-            <span>Total</span>
-            <span>{totals.left.toFixed(2)}</span>
-          </div>
+
+          <button
+            type="button"
+            onClick={fetchProfitLoss}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className={loading ? "animate-spin" : ""}>↻</span>
+            Refresh
+          </button>
         </div>
 
-        {/* RIGHT - Incomes */}
-        <div className="w-1/2">
-          <div className="flex justify-between bg-gray-100 p-2 border-b border-black font-bold">
-            <span>Particulars</span>
-            <span>Amount</span>
-          </div>
-          <div className="p-2 min-h-[400px]">
-            {rightData.map((item, i) => (
-              <div key={i} className="flex justify-between py-1">
-                <span>{item.name}</span>
-                <span>{item.amount.toFixed(2)}</span>
-              </div>
-            ))}
-            {totals.loss > 0 && (
-              <div className="flex justify-between py-1 font-bold border-t mt-2">
-                <span>Net Loss</span>
-                <span>{totals.loss.toFixed(2)}</span>
-              </div>
-            )}
-            {/* Your current example */}
-            {totals.totalInc === 0 && totals.loss > 0 && (
-              <div className="text-xs text-gray-500 mt-2">* Eg: Rent 30,000 will come here as Net Loss</div>
-            )}
-          </div>
-          <div className="flex justify-between p-2 border-t border-black font-bold bg-gray-100">
-            <span>Total</span>
-            <span>{totals.right.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
+        {/* Loading */}
+        {loading && (
+          <div className="rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
+            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
 
-      <div className="text-center mt-4 text-sm">
-        {totals.loss > 0? `Net Loss: ${totals.loss}` : `Net Profit: ${totals.profit}`} | Left {totals.left} = Right {totals.right}
+            <p className="text-sm font-medium text-slate-600">
+              Loading Profit & Loss...
+            </p>
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+            <p className="font-semibold text-red-700">
+              Unable to load Profit & Loss
+            </p>
+
+            <p className="mt-1 text-sm text-red-600">{error}</p>
+
+            <button
+              type="button"
+              onClick={fetchProfitLoss}
+              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Main Content */}
+        {!loading && !error && data && (
+          <>
+            {/* Statement */}
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+              {/* Statement Header */}
+              <div className="border-b border-slate-200 bg-slate-900 px-6 py-5 text-center">
+                <h2 className="text-xl font-bold text-white">
+                  Profit & Loss Statement
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-300">
+                  Income and Expenses Summary
+                </p>
+              </div>
+
+              {/* Two Column Tally Style */}
+              <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-2 md:divide-x md:divide-y-0">
+                {/* Expenses */}
+                <section className="min-w-0">
+                  <div className="border-b border-slate-200 bg-red-50 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">
+                          Expenses
+                        </h3>
+
+                        <p className="text-xs font-medium text-red-600">
+                          Debit
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                        {expenseRows.length}{" "}
+                        {expenseRows.length === 1 ? "Ledger" : "Ledgers"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                      <table className="w-full table-fixed">
+                        <thead>
+                          <tr className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-600">
+                            <th className="w-[46%] px-4 py-3 font-bold">
+                              Particulars
+                            </th>
+
+                            <th className="w-[27%] px-4 py-3 text-right font-bold">
+                              Debit
+                            </th>
+
+                            <th className="w-[27%] px-4 py-3 text-right font-bold">
+                              Credit
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+                          {expenseRows.length > 0 ? (
+                            expenseRows.map((row, index) => (
+                              <tr
+                                key={`${row.ledger_name}-${index}`}
+                                className="hover:bg-slate-50"
+                              >
+                                <td className="break-words px-4 py-3 text-sm font-medium text-slate-800">
+                                  {row.ledger_name}
+                                </td>
+
+                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
+                                  {formatAmount(row.total_dr)}
+                                </td>
+
+                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
+                                  {formatAmount(row.total_cr)}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan="3"
+                                className="px-4 py-8 text-center text-sm text-slate-500"
+                              >
+                                No expense entries
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+
+                        <tfoot>
+                          <tr className="border-t-2 border-slate-300 bg-slate-50">
+                            <td className="px-4 py-4 text-sm font-bold text-slate-900">
+                              Total Expenses
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
+                              {formatAmount(data.expenses)}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
+                              {formatAmount(0)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Income */}
+                <section className="min-w-0">
+                  <div className="border-b border-slate-200 bg-emerald-50 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900">
+                          Income
+                        </h3>
+
+                        <p className="text-xs font-medium text-emerald-600">
+                          Credit
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                        {incomeRows.length}{" "}
+                        {incomeRows.length === 1 ? "Ledger" : "Ledgers"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="overflow-hidden rounded-xl border border-slate-200">
+                      <table className="w-full table-fixed">
+                        <thead>
+                          <tr className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-600">
+                            <th className="w-[46%] px-4 py-3 font-bold">
+                              Particulars
+                            </th>
+
+                            <th className="w-[27%] px-4 py-3 text-right font-bold">
+                              Debit
+                            </th>
+
+                            <th className="w-[27%] px-4 py-3 text-right font-bold">
+                              Credit
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+                          {incomeRows.length > 0 ? (
+                            incomeRows.map((row, index) => (
+                              <tr
+                                key={`${row.ledger_name}-${index}`}
+                                className="hover:bg-slate-50"
+                              >
+                                <td className="break-words px-4 py-3 text-sm font-medium text-slate-800">
+                                  {row.ledger_name}
+                                </td>
+
+                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
+                                  {formatAmount(row.total_dr)}
+                                </td>
+
+                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
+                                  {formatAmount(row.total_cr)}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan="3"
+                                className="px-4 py-8 text-center text-sm text-slate-500"
+                              >
+                                No income entries
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+
+                        <tfoot>
+                          <tr className="border-t-2 border-slate-300 bg-slate-50">
+                            <td className="px-4 py-4 text-sm font-bold text-slate-900">
+                              Total Income
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
+                              {formatAmount(0)}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
+                              {formatAmount(data.income)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              {/* Result */}
+              <div className="border-t border-slate-200 bg-slate-50 p-6">
+                <div className="mx-auto max-w-2xl">
+                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 text-center">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Final Result
+                      </p>
+
+                      {data.profit > 0 ? (
+                        <>
+                          <h3 className="mt-1 text-2xl font-bold text-emerald-600">
+                            Net Profit
+                          </h3>
+
+                          <p className="mt-1 text-lg font-bold text-slate-900">
+                            {formatAmount(data.profit)}
+                          </p>
+                        </>
+                      ) : data.loss > 0 ? (
+                        <>
+                          <h3 className="mt-1 text-2xl font-bold text-red-600">
+                            Net Loss
+                          </h3>
+
+                          <p className="mt-1 text-lg font-bold text-slate-900">
+                            {formatAmount(data.loss)}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="mt-1 text-2xl font-bold text-slate-700">
+                            No Profit / No Loss
+                          </h3>
+
+                          <p className="mt-1 text-lg font-bold text-slate-900">
+                            ₹0.00
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2">
+        
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Calculation */}
+            <div className="mt-5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Calculation
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm font-semibold text-slate-700">
+                <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">
+                  Income {formatAmount(data.income)}
+                </span>
+
+                <span className="text-slate-400">−</span>
+
+                <span className="rounded-lg bg-red-50 px-3 py-2 text-red-700">
+                  Expenses {formatAmount(data.expenses)}
+                </span>
+
+                <span className="text-slate-400">=</span>
+
+                {data.profit > 0 ? (
+                  <span className="rounded-lg bg-emerald-100 px-3 py-2 text-emerald-700">
+                    Profit {formatAmount(data.profit)}
+                  </span>
+                ) : data.loss > 0 ? (
+                  <span className="rounded-lg bg-red-100 px-3 py-2 text-red-700">
+                    Loss {formatAmount(data.loss)}
+                  </span>
+                ) : (
+                  <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">
+                    No Profit / No Loss
+                  </span>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

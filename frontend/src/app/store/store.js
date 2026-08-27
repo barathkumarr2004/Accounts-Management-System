@@ -3,7 +3,6 @@ import { configureStore } from "@reduxjs/toolkit";
 import groupReducer from "./slices/groupSlice";
 import ledgerReducer from "./slices/ledgerSlice";
 import journalReducer from "./slices/journalSlice";
-
 import { chartOfAccountsApi } from "./api/chartOfAccountsApi";
 
 const store = configureStore({

@@ -1,28 +1,52 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = "http://localhost:5000/api/profitloss";
 
 export const getProfitLossApi = async () => {
-  try {
-    const response = await fetch(
-      `${API_URL}/profit-loss`
-    );
+  const response = await fetch(API_URL);
+  const result = await response.json();
 
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        result.message || "Unable to load Profit & Loss"
-      );
-    }
-
-    return result;
-  } catch (error) {
-    console.error(
-      "GET PROFIT LOSS API ERROR:",
-      error
-    );
-
+  if (!response.ok || !result.success) {
     throw new Error(
-      error.message || "Unable to load Profit & Loss"
+      result.message || "Unable to fetch Profit & Loss"
     );
   }
+
+  return {
+    data: result.data,
+  };
+};
+
+export const getLedgerVouchersApi = async (ledgerId) => {
+  const response = await fetch(
+    `${API_URL}/ledgers/${ledgerId}/vouchers`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.message || "Unable to fetch ledger vouchers"
+    );
+  }
+
+  return {
+    data: result.vouchers || result.data || [],
+  };
+};
+
+export const getVoucherDetailApi = async (voucherId) => {
+  const response = await fetch(
+    `${API_URL}/vouchers/${voucherId}`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.message || "Unable to fetch voucher detail"
+    );
+  }
+
+  return {
+    data: result.data,
+  };
 };

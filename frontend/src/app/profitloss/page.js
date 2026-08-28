@@ -1,405 +1,902 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 
-const API_URL = "http://localhost:5000/api/profit-loss";
+import {
+  fetchProfitLoss,
+  fetchLedgerVouchers,
+  clearLedgerVouchers,
+} from "../store/slices/profitLossSlice";
 
-const formatAmount = (value) => {
-  return `₹${Number(value || 0).toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-};
+const ProfitLoss = () => {
+  const dispatch = useDispatch();
+  const router = useRouter();
 
-export default function ProfitLossPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    data,
+    loading,
+    error,
+    ledgerVouchers,
+    ledgerVouchersLoading,
+    ledgerVouchersError,
+  } = useSelector((state) => state.profitLoss);
 
-  const fetchProfitLoss = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await fetch(API_URL, {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch Profit & Loss data");
-      }
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message || "Unable to load data");
-      }
-
-      setData(result.data);
-    } catch (err) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [showModal, setShowModal] = useState(false);
+  const [selectedLedger, setSelectedLedger] = useState(null);
 
   useEffect(() => {
-    fetchProfitLoss();
-  }, []);
+    dispatch(fetchProfitLoss());
+  }, [dispatch]);
 
-  const expenseRows =
-    data?.rows?.filter((row) => row.nature_name === "Expenses") || [];
+  const directIncome = data?.directIncome || [];
+  const indirectIncome = data?.indirectIncome || [];
+  const directExpense = data?.directExpense || [];
+  const indirectExpense = data?.indirectExpense || [];
 
-  const incomeRows =
-    data?.rows?.filter((row) => row.nature_name === "Income") || [];
+  const incomeLedgers = useMemo(
+    () => [...directIncome, ...indirectIncome],
+    [directIncome, indirectIncome]
+  );
 
-  return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-              Profit & Loss A/c
-            </h1>
+  const expenseLedgers = useMemo(
+    () => [...directExpense, ...indirectExpense],
+    [directExpense, indirectExpense]
+  );
 
-            <p className="mt-1 text-sm text-slate-500">
-              Income and Expenses Statement
-            </p>
+  const totalIncome = Number(data?.totalIncome || 0);
+  const totalExpense = Number(data?.totalExpense || 0);
+  const netProfitLoss = Number(data?.netProfitLoss || 0);
+  const resultAmount = Number(data?.resultAmount || 0);
+
+  const isProfit = data?.resultType === "Profit";
+  const isLoss = data?.resultType === "Loss";
+
+  const handleLedgerClick = (ledger) => {
+    setSelectedLedger(ledger);
+    dispatch(clearLedgerVouchers());
+    dispatch(fetchLedgerVouchers(ledger.id));
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedLedger(null);
+    dispatch(clearLedgerVouchers());
+  };
+
+  const handleVoucherView = (voucher) => {
+    if (!voucher?.voucher_id) return;
+
+    closeModal();
+    router.push(`/journal/${voucher.voucher_id}`);
+  };
+
+  const formatAmount = (amount) =>
+    Number(amount || 0).toFixed(2);
+
+  const formatDate = (date) => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString();
+  };
+
+  const voucherTotalDebit = ledgerVouchers.reduce(
+    (total, voucher) =>
+      total + Number(voucher.debit || 0),
+    0
+  );
+
+  const voucherTotalCredit = ledgerVouchers.reduce(
+    (total, voucher) =>
+      total + Number(voucher.credit || 0),
+    0
+  );
+
+  const pageStyle = {
+    minHeight: "100vh",
+    background: "#0b122e",
+    color: "white",
+    padding: "15px",
+    fontFamily: "Arial",
+  };
+
+  const boxStyle = {
+    border: "1.5px solid",
+    borderRadius: "10px",
+    padding: "25px",
+    textAlign: "center",
+    background: "#131d42",
+  };
+
+  if (loading && !data) {
+    return (
+      <div style={pageStyle}>
+        <div
+          style={{
+            ...boxStyle,
+            borderColor: "#60a5fa",
+          }}
+        >
+          Loading Profit & Loss...
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div style={pageStyle}>
+        <div
+          style={{
+            ...boxStyle,
+            borderColor: "#f87171",
+          }}
+        >
+          <div
+            style={{
+              color: "#fca5a5",
+              fontWeight: "bold",
+              marginBottom: "15px",
+            }}
+          >
+            {error}
           </div>
 
           <button
-            type="button"
-            onClick={fetchProfitLoss}
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => dispatch(fetchProfitLoss())}
+            style={{
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              padding: "8px 18px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
           >
-            <span className={loading ? "animate-spin" : ""}>↻</span>
-            Refresh
+            Retry
           </button>
         </div>
+      </div>
+    );
+  }
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0b122e",
+        color: "white",
+        padding: "15px",
+        fontFamily: "Arial",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          border:
+            isProfit
+              ? "2px solid #34d399"
+              : isLoss
+              ? "2px solid #f87171"
+              : "2px solid #60a5fa",
+          borderRadius: "8px",
+          padding: "12px 20px",
+          background: "linear-gradient(90deg, #0b122e, #1e3a8a)",
+          marginBottom: "12px",
+          gap: "15px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "22px",
+              fontWeight: "900",
+            }}
+          >
+            PROFIT & LOSS A/C
+          </h1>
+        </div>
+      </div>
 
-        {/* Loading */}
-        {loading && (
-          <div className="rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
-            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800" />
-
-            <p className="text-sm font-medium text-slate-600">
-              Loading Profit & Loss...
-            </p>
-          </div>
-        )}
-
-        {/* Error */}
-        {!loading && error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
-            <p className="font-semibold text-red-700">
-              Unable to load Profit & Loss
-            </p>
-
-            <p className="mt-1 text-sm text-red-600">{error}</p>
-
-            <button
-              type="button"
-              onClick={fetchProfitLoss}
-              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+      <div
+        style={{
+          border:
+            isProfit
+              ? "1.5px solid #34d399"
+              : "1.5px solid #f87171",
+          borderRadius: "12px",
+          overflow: "hidden",
+          background: "#131d42",
+        }}
+      >
+      
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            padding: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              minWidth: "320px",
+              border: "1.5px solid #60a5fa",
+              borderRadius: "10px",
+              overflow: "hidden",
+              background: "#131d42",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 15px",
+                background: "#1e3a8a",
+                fontWeight: "bold",
+                fontSize: "14px",
+              }}
             >
-              Try Again
-            </button>
+              <span>INCOME</span>
+
+              <span style={{ color: "#22d3ee" }}>
+                ₹ {formatAmount(totalIncome)}
+              </span>
+            </div>
+
+            <div style={{ minHeight: "420px" }}>
+              {incomeLedgers.length === 0 ? (
+                <div
+                  style={{
+                    padding: "30px 15px",
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: "13px",
+                  }}
+                >
+                  No income found
+                </div>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "50px 1fr 130px",
+                      padding: "9px 15px",
+                      background: "rgba(255,255,255,0.04)",
+                      borderBottom:
+                        "1px solid rgba(255,255,255,0.1)",
+                      fontSize: "11px",
+                      color: "rgba(255,255,255,0.65)",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    <span>#</span>
+                    <span>Ledger Account</span>
+                    <span style={{ textAlign: "right" }}>
+                      Amount
+                    </span>
+                  </div>
+
+                  {incomeLedgers.map((ledger, index) => (
+                    <div
+                      key={`income-${ledger.id}-${ledger.code}-${index}`}
+                      onClick={() => handleLedgerClick(ledger)}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "50px 1fr 130px",
+                        alignItems: "center",
+                        padding: "12px 15px",
+                        borderBottom:
+                          "1px solid rgba(255,255,255,0.08)",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        {index + 1}
+                      </span>
+
+                      <div>
+                        <div
+                          style={{
+                            color: "white",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {ledger.name}
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          textAlign: "right",
+                          color: "#22d3ee",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ₹ {formatAmount(ledger.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "12px 15px",
+                background: "rgba(0,0,0,0.6)",
+                borderTop: "1px solid #60a5fa",
+                fontWeight: "bold",
+              }}
+            >
+              <span>Total Income</span>
+
+              <span style={{ color: "#22d3ee" }}>
+                ₹ {formatAmount(totalIncome)}
+              </span>
+            </div>
           </div>
-        )}
 
-        {/* Main Content */}
-        {!loading && !error && data && (
-          <>
-            {/* Statement */}
-            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-              {/* Statement Header */}
-              <div className="border-b border-slate-200 bg-slate-900 px-6 py-5 text-center">
-                <h2 className="text-xl font-bold text-white">
-                  Profit & Loss Statement
-                </h2>
+          <div
+            style={{
+              flex: 1,
+              minWidth: "320px",
+              border: "1.5px solid #f87171",
+              borderRadius: "10px",
+              overflow: "hidden",
+              background: "#131d42",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 15px",
+                background: "#3f1d2e",
+                fontWeight: "bold",
+                fontSize: "14px",
+              }}
+            >
+              <span>EXPENSES</span>
 
-                <p className="mt-1 text-xs text-slate-300">
-                  Income and Expenses Summary
-                </p>
-              </div>
+              <span style={{ color: "#f87171" }}>
+                ₹ {formatAmount(totalExpense)}
+              </span>
+            </div>
 
-              {/* Two Column Tally Style */}
-              <div className="grid grid-cols-1 divide-y divide-slate-200 md:grid-cols-2 md:divide-x md:divide-y-0">
-                {/* Expenses */}
-                <section className="min-w-0">
-                  <div className="border-b border-slate-200 bg-red-50 px-6 py-4">
-                    <div className="flex items-center justify-between">
+            <div style={{ minHeight: "420px" }}>
+              {expenseLedgers.length === 0 ? (
+                <div
+                  style={{
+                    padding: "30px 15px",
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.5)",
+                    fontSize: "13px",
+                  }}
+                >
+                  No expenses found
+                </div>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "50px 1fr 130px",
+                      padding: "9px 15px",
+                      background: "rgba(255,255,255,0.04)",
+                      borderBottom:
+                        "1px solid rgba(255,255,255,0.1)",
+                      fontSize: "11px",
+                      color: "rgba(255,255,255,0.65)",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    <span>#</span>
+                    <span>Ledger Account</span>
+                    <span style={{ textAlign: "right" }}>
+                      Amount
+                    </span>
+                  </div>
+
+                  {expenseLedgers.map((ledger, index) => (
+                    <div
+                      key={`expense-${ledger.id}-${ledger.code}-${index}`}
+                      onClick={() => handleLedgerClick(ledger)}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "50px 1fr 130px",
+                        alignItems: "center",
+                        padding: "12px 15px",
+                        borderBottom:
+                          "1px solid rgba(255,255,255,0.08)",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        {index + 1}
+                      </span>
+
                       <div>
-                        <h3 className="text-lg font-bold text-slate-900">
-                          Expenses
-                        </h3>
+                        <div
+                          style={{
+                            color: "white",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {ledger.name}
+                        </div>
 
-                        <p className="text-xs font-medium text-red-600">
-                          Debit
-                        </p>
+                        
                       </div>
 
-                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                        {expenseRows.length}{" "}
-                        {expenseRows.length === 1 ? "Ledger" : "Ledgers"}
+                      <span
+                        style={{
+                          textAlign: "right",
+                          color: "#f87171",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ₹ {formatAmount(ledger.amount)}
                       </span>
                     </div>
-                  </div>
+                  ))}
+                </>
+              )}
+            </div>
 
-                  <div className="p-6">
-                    <div className="overflow-hidden rounded-xl border border-slate-200">
-                      <table className="w-full table-fixed">
-                        <thead>
-                          <tr className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-600">
-                            <th className="w-[46%] px-4 py-3 font-bold">
-                              Particulars
-                            </th>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "12px 15px",
+                background: "rgba(0,0,0,0.6)",
+                borderTop: "1px solid #f87171",
+                fontWeight: "bold",
+              }}
+            >
+              <span>Total Expense</span>
 
-                            <th className="w-[27%] px-4 py-3 text-right font-bold">
-                              Debit
-                            </th>
+              <span style={{ color: "#f87171" }}>
+                ₹ {formatAmount(totalExpense)}
+              </span>
+            </div>
+          </div>
+        </div>
 
-                            <th className="w-[27%] px-4 py-3 text-right font-bold">
-                              Credit
-                            </th>
-                          </tr>
-                        </thead>
+        <div
+          style={{
+            margin: "0 12px 12px",
+            padding: "12px 15px",
+            border:
+              isProfit
+                ? "1px solid rgba(52,211,153,0.5)"
+                : "1px solid rgba(248,113,113,0.5)",
+            borderRadius: "8px",
+            background:
+              isProfit
+                ? "rgba(52,211,153,0.08)"
+                : "rgba(248,113,113,0.08)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "11px",
+              color: "rgba(255,255,255,0.55)",
+              marginBottom: "5px",
+            }}
+          >
+            Tally Formula
+          </div>
 
-                        <tbody className="divide-y divide-slate-100">
-                          {expenseRows.length > 0 ? (
-                            expenseRows.map((row, index) => (
-                              <tr
-                                key={`${row.ledger_name}-${index}`}
-                                className="hover:bg-slate-50"
-                              >
-                                <td className="break-words px-4 py-3 text-sm font-medium text-slate-800">
-                                  {row.ledger_name}
-                                </td>
+          <div
+            style={{
+              fontSize: "13px",
+              fontWeight: "bold",
+            }}
+          >
+            Net Profit / Loss = (Direct Income + Indirect
+            Income) - (Direct Expense + Indirect Expense)
+          </div>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
-                                  {formatAmount(row.total_dr)}
-                                </td>
+          <div
+            style={{
+              marginTop: "7px",
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.65)",
+            }}
+          >
+            = ₹ {formatAmount(totalIncome)} - ₹{" "}
+            {formatAmount(totalExpense)} ={" "}
+            <span
+              style={{
+                color: isProfit ? "#6ee7b7" : "#f87171",
+                fontWeight: "bold",
+              }}
+            >
+              {isProfit ? "Profit" : "Loss"} ₹{" "}
+              {formatAmount(resultAmount)}
+            </span>
+          </div>
+        </div>
 
-                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
-                                  {formatAmount(row.total_cr)}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td
-                                colSpan="3"
-                                className="px-4 py-8 text-center text-sm text-slate-500"
-                              >
-                                No expense entries
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
+        <div
+          style={{
+            margin: "0 12px 12px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "12px 15px",
+            border:
+              isProfit
+                ? "1.5px solid #34d399"
+                : "1.5px solid #f87171",
+            borderRadius: "8px",
+            background:
+              isProfit
+                ? "rgba(52,211,153,0.08)"
+                : "rgba(248,113,113,0.08)",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "11px",
+                color: "rgba(255,255,255,0.55)",
+              }}
+            >
+              Net Result
+            </div>
 
-                        <tfoot>
-                          <tr className="border-t-2 border-slate-300 bg-slate-50">
-                            <td className="px-4 py-4 text-sm font-bold text-slate-900">
-                              Total Expenses
-                            </td>
+            <div
+              style={{
+                fontSize: "15px",
+                fontWeight: "bold",
+                marginTop: "3px",
+              }}
+            >
+              Net {isProfit ? "Profit" : "Loss"}
+            </div>
+          </div>
 
-                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
-                              {formatAmount(data.expenses)}
-                            </td>
+          <div
+            style={{
+              fontSize: "20px",
+              fontWeight: "900",
+              color: isProfit ? "#6ee7b7" : "#f87171",
+            }}
+          >
+            ₹ {formatAmount(resultAmount)}
+          </div>
+        </div>
+      </div>
 
-                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
-                              {formatAmount(0)}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  </div>
-                </section>
+      {showModal && (
+        <div
+          onClick={closeModal}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              background: "#131d42",
+              border: "1.5px solid #60a5fa",
+              borderRadius: "12px",
+              width: "95%",
+              maxWidth: "1000px",
+              maxHeight: "85vh",
+              overflow: "auto",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "15px 20px",
+                borderBottom:
+                  "1px solid rgba(255,255,255,0.12)",
+                background: "#172554",
+                position: "sticky",
+                top: 0,
+                zIndex: 2,
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: 0,
+                    color: "#22d3ee",
+                    fontSize: "18px",
+                  }}
+                >
+                  Ledger Transactions
+                </h3>
 
-                {/* Income */}
-                <section className="min-w-0">
-                  <div className="border-b border-slate-200 bg-emerald-50 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900">
-                          Income
-                        </h3>
-
-                        <p className="text-xs font-medium text-emerald-600">
-                          Credit
-                        </p>
-                      </div>
-
-                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                        {incomeRows.length}{" "}
-                        {incomeRows.length === 1 ? "Ledger" : "Ledgers"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="overflow-hidden rounded-xl border border-slate-200">
-                      <table className="w-full table-fixed">
-                        <thead>
-                          <tr className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-600">
-                            <th className="w-[46%] px-4 py-3 font-bold">
-                              Particulars
-                            </th>
-
-                            <th className="w-[27%] px-4 py-3 text-right font-bold">
-                              Debit
-                            </th>
-
-                            <th className="w-[27%] px-4 py-3 text-right font-bold">
-                              Credit
-                            </th>
-                          </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-slate-100">
-                          {incomeRows.length > 0 ? (
-                            incomeRows.map((row, index) => (
-                              <tr
-                                key={`${row.ledger_name}-${index}`}
-                                className="hover:bg-slate-50"
-                              >
-                                <td className="break-words px-4 py-3 text-sm font-medium text-slate-800">
-                                  {row.ledger_name}
-                                </td>
-
-                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
-                                  {formatAmount(row.total_dr)}
-                                </td>
-
-                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-medium text-slate-700">
-                                  {formatAmount(row.total_cr)}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td
-                                colSpan="3"
-                                className="px-4 py-8 text-center text-sm text-slate-500"
-                              >
-                                No income entries
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-
-                        <tfoot>
-                          <tr className="border-t-2 border-slate-300 bg-slate-50">
-                            <td className="px-4 py-4 text-sm font-bold text-slate-900">
-                              Total Income
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
-                              {formatAmount(0)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-4 text-right text-sm font-bold text-slate-900">
-                              {formatAmount(data.income)}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              {/* Result */}
-              <div className="border-t border-slate-200 bg-slate-50 p-6">
-                <div className="mx-auto max-w-2xl">
-                  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="mb-4 text-center">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        Final Result
-                      </p>
-
-                      {data.profit > 0 ? (
-                        <>
-                          <h3 className="mt-1 text-2xl font-bold text-emerald-600">
-                            Net Profit
-                          </h3>
-
-                          <p className="mt-1 text-lg font-bold text-slate-900">
-                            {formatAmount(data.profit)}
-                          </p>
-                        </>
-                      ) : data.loss > 0 ? (
-                        <>
-                          <h3 className="mt-1 text-2xl font-bold text-red-600">
-                            Net Loss
-                          </h3>
-
-                          <p className="mt-1 text-lg font-bold text-slate-900">
-                            {formatAmount(data.loss)}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <h3 className="mt-1 text-2xl font-bold text-slate-700">
-                            No Profit / No Loss
-                          </h3>
-
-                          <p className="mt-1 text-lg font-bold text-slate-900">
-                            ₹0.00
-                          </p>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2">
-        
-                    </div>
-                  </div>
+                <div
+                  style={{
+                    marginTop: "4px",
+                    fontSize: "11px",
+                    color: "rgba(255,255,255,0.6)",
+                  }}
+                >
+                  {selectedLedger?.name}{" "}
+                  {selectedLedger?.code
+                    ? `(${selectedLedger.code})`
+                    : ""}
                 </div>
               </div>
+
+              <button
+                onClick={closeModal}
+                style={{
+                  background: "#f87171",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                }}
+              >
+                Close
+              </button>
             </div>
 
-            {/* Calculation */}
-            <div className="mt-5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Calculation
-              </p>
+            <div style={{ padding: "20px" }}>
+              {ledgerVouchersLoading ? (
+                <div
+                  style={{
+                    padding: "40px 15px",
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.65)",
+                  }}
+                >
+                  Loading voucher transactions...
+                </div>
+              ) : ledgerVouchersError ? (
+                <div
+                  style={{
+                    padding: "40px 15px",
+                    textAlign: "center",
+                    color: "#fca5a5",
+                  }}
+                >
+                  {ledgerVouchersError}
+                </div>
+              ) : ledgerVouchers.length === 0 ? (
+                <div
+                  style={{
+                    padding: "40px 15px",
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.6)",
+                  }}
+                >
+                  No voucher transactions found.
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "13px",
+                      minWidth: "750px",
+                    }}
+                  >
+                    <thead>
+                      <tr style={{ background: "#1e3a8a" }}>
+                        <th
+                          style={{
+                            padding: "10px",
+                            textAlign: "left",
+                          }}
+                        >
+                          Voucher No
+                        </th>
 
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm font-semibold text-slate-700">
-                <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">
-                  Income {formatAmount(data.income)}
-                </span>
+                        <th
+                          style={{
+                            padding: "10px",
+                            textAlign: "left",
+                          }}
+                        >
+                          Date
+                        </th>
 
-                <span className="text-slate-400">−</span>
+                        <th
+                          style={{
+                            padding: "10px",
+                            textAlign: "left",
+                          }}
+                        >
+                          Narration
+                        </th>
 
-                <span className="rounded-lg bg-red-50 px-3 py-2 text-red-700">
-                  Expenses {formatAmount(data.expenses)}
-                </span>
+                        <th
+                          style={{
+                            padding: "10px",
+                            textAlign: "right",
+                          }}
+                        >
+                          Debit
+                        </th>
 
-                <span className="text-slate-400">=</span>
+                        <th
+                          style={{
+                            padding: "10px",
+                            textAlign: "right",
+                          }}
+                        >
+                          Credit
+                        </th>
 
-                {data.profit > 0 ? (
-                  <span className="rounded-lg bg-emerald-100 px-3 py-2 text-emerald-700">
-                    Profit {formatAmount(data.profit)}
-                  </span>
-                ) : data.loss > 0 ? (
-                  <span className="rounded-lg bg-red-100 px-3 py-2 text-red-700">
-                    Loss {formatAmount(data.loss)}
-                  </span>
-                ) : (
-                  <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">
-                    No Profit / No Loss
-                  </span>
-                )}
-              </div>
+                        <th
+                          style={{
+                            padding: "10px",
+                            textAlign: "center",
+                          }}
+                        >
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {ledgerVouchers.map((voucher, index) => (
+                        <tr
+                          key={`${voucher.voucher_id}-${voucher.id}-${index}`}
+                          style={{
+                            borderBottom:
+                              "1px solid rgba(255,255,255,0.1)",
+                          }}
+                        >
+                          <td style={{ padding: "10px" }}>
+                            {voucher.voucher_number || "-"}
+                          </td>
+
+                          <td style={{ padding: "10px" }}>
+                            {formatDate(voucher.voucher_date)}
+                          </td>
+
+                          <td
+                            style={{
+                              padding: "10px",
+                              opacity: 0.8,
+                            }}
+                          >
+                            {voucher.narration || "-"}
+                          </td>
+
+                          <td
+                            style={{
+                              padding: "10px",
+                              textAlign: "right",
+                              color: "#fbbf24",
+                            }}
+                          >
+                            {formatAmount(voucher.debit)}
+                          </td>
+
+                          <td
+                            style={{
+                              padding: "10px",
+                              textAlign: "right",
+                              color: "#6ee7b7",
+                            }}
+                          >
+                            {formatAmount(voucher.credit)}
+                          </td>
+
+                          <td
+                            style={{
+                              padding: "10px",
+                              textAlign: "center",
+                            }}
+                          >
+                            <button
+                              onClick={() =>
+                                handleVoucherView(voucher)
+                              }
+                              style={{
+                                background: "#22d3ee",
+                                color: "#0b122e",
+                                border: "none",
+                                padding: "5px 12px",
+                                borderRadius: "5px",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                              }}
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+
+                      <tr
+                        style={{
+                          background: "rgba(0,0,0,0.5)",
+                          fontWeight: "bold",
+                          borderTop: "2px solid #60a5fa",
+                        }}
+                      >
+                        <td
+                          colSpan={2}
+                          style={{ padding: "10px" }}
+                        ></td>
+
+                        <td
+                          style={{
+                            padding: "10px",
+                            textAlign: "right",
+                          }}
+                        >
+                          Total:
+                        </td>
+
+                        <td
+                          style={{
+                            padding: "10px",
+                            textAlign: "right",
+                            color: "#fbbf24",
+                          }}
+                        >
+                          {formatAmount(voucherTotalDebit)}
+                        </td>
+
+                        <td
+                          style={{
+                            padding: "10px",
+                            textAlign: "right",
+                            color: "#6ee7b7",
+                          }}
+                        >
+                          {formatAmount(voucherTotalCredit)}
+                        </td>
+
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ProfitLoss;

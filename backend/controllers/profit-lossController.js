@@ -23,20 +23,15 @@ const getProfitLoss = async (req, res) => {
     const result = income - expenses;
 
     return res.status(200).json({
-      success: true,
-
+      success: true, 
       data: {
-        rows,
-
-        income,
-        expenses,
-
+        rows,  income, expenses,
         profit: result > 0 ? result : 0,
-
         loss: result < 0 ? Math.abs(result) : 0,
       },
     });
-  } catch (error) {
+  } 
+  catch (error) {
     console.error("Profit & Loss Error:", error);
 
     return res.status(500).json({

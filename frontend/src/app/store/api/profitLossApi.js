@@ -32,21 +32,3 @@ export const getLedgerVouchersApi = async (ledgerId) => {
     data: result.vouchers || result.data || [],
   };
 };
-
-export const getVoucherDetailApi = async (voucherId) => {
-  const response = await fetch(
-    `${API_URL}/vouchers/${voucherId}`
-  );
-
-  const result = await response.json();
-
-  if (!response.ok || !result.success) {
-    throw new Error(
-      result.message || "Unable to fetch voucher detail"
-    );
-  }
-
-  return {
-    data: result.data,
-  };
-};

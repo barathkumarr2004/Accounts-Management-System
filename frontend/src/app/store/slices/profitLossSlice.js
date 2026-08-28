@@ -2,7 +2,6 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import {
   getProfitLossApi,
   getLedgerVouchersApi,
-  getVoucherDetailApi,
 } from "../api/profitLossApi";
 
 const getError = (error, message) =>
@@ -36,19 +35,6 @@ export const fetchLedgerVouchers = createAsyncThunk(
   }
 );
 
-export const fetchVoucherDetail = createAsyncThunk(
-  "profitLoss/fetchVoucherDetail",
-  async (voucherId, { rejectWithValue }) => {
-    try {
-      const response = await getVoucherDetailApi(voucherId);
-      return response.data?.data || response.data || null;
-    } catch (error) {
-      return rejectWithValue(
-        getError(error, "Unable to fetch voucher details")
-      );
-    }
-  }
-);
 
 const initialState = {
   data: null,
@@ -75,12 +61,6 @@ const profitLossSlice = createSlice({
       state.ledgerVouchers = [];
       state.ledgerVouchersError = null;
       state.ledgerVouchersLoading = false;
-    },
-
-    clearVoucherDetail: (state) => {
-      state.voucherDetail = null;
-      state.voucherDetailError = null;
-      state.voucherDetailLoading = false;
     },
   },
 
@@ -117,28 +97,12 @@ const profitLossSlice = createSlice({
         state.ledgerVouchersError =
           action.payload || "Unable to fetch ledger vouchers";
       })
-
-      .addCase(fetchVoucherDetail.pending, (state) => {
-        state.voucherDetailLoading = true;
-        state.voucherDetailError = null;
-      })
-      .addCase(fetchVoucherDetail.fulfilled, (state, action) => {
-        state.voucherDetailLoading = false;
-        state.voucherDetailError = null;
-        state.voucherDetail = action.payload;
-      })
-      .addCase(fetchVoucherDetail.rejected, (state, action) => {
-        state.voucherDetailLoading = false;
-        state.voucherDetailError =
-          action.payload || "Unable to fetch voucher details";
-      });
   },
 });
 
 export const {
   clearProfitLossError,
   clearLedgerVouchers,
-  clearVoucherDetail,
 } = profitLossSlice.actions;
 
 export default profitLossSlice.reducer;

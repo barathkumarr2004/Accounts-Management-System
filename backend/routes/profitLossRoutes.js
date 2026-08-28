@@ -9,6 +9,5 @@ const {
 
 router.get("/", getProfitLoss);
 router.get("/ledgers/:id/vouchers", getVouchersByLedger);
-router.get("/vouchers/:voucherId", getVoucherDetail);
 
 module.exports = router;

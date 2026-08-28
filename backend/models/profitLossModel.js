@@ -47,43 +47,9 @@ const getLedgerVouchers = async (ledgerId) => {
   return rows;
 };
 
-const getVoucherFullDetail = async (voucherId) => {
-  const [vouchers] = await db.query(
-    `
-    SELECT id, voucher_number, voucher_date, narration
-    FROM journal_vouchers
-    WHERE id = ?
-    `,
-    [voucherId]
-  );
 
-  if (!vouchers.length) return null;
-
-  const [entries] = await db.query(
-    `
-    SELECT
-      je.id,
-      je.ledger_id,
-      l.code AS ledger_code,
-      l.name AS ledger_name,
-      je.debit,
-      je.credit
-    FROM journal_entries je
-    INNER JOIN ledgers l ON l.id = je.ledger_id
-    WHERE je.voucher_id = ?
-    ORDER BY je.id ASC
-    `,
-    [voucherId]
-  );
-
-  return {
-    voucher: vouchers[0],
-    entries,
-  };
-};
 
 module.exports = {
   getProfitLossData,
   getLedgerVouchers,
-  getVoucherFullDetail,
 };

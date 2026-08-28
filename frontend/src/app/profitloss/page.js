@@ -14,15 +14,7 @@ const ProfitLoss = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const {
-    data,
-    loading,
-    error,
-    ledgerVouchers,
-    ledgerVouchersLoading,
-    ledgerVouchersError,
-  } = useSelector((state) => state.profitLoss);
-
+  const { data, loading, error, ledgerVouchers, ledgerVouchersLoading, ledgerVouchersError } = useSelector((state) => state.profitLoss);
   const [showModal, setShowModal] = useState(false);
   const [selectedLedger, setSelectedLedger] = useState(null);
 
@@ -93,21 +85,8 @@ const ProfitLoss = () => {
     0
   );
 
-  const pageStyle = {
-    minHeight: "100vh",
-    background: "#0b122e",
-    color: "white",
-    padding: "15px",
-    fontFamily: "Arial",
-  };
-
-  const boxStyle = {
-    border: "1.5px solid",
-    borderRadius: "10px",
-    padding: "25px",
-    textAlign: "center",
-    background: "#131d42",
-  };
+  const pageStyle = { minHeight: "100vh", background: "#0b122e", color: "white", padding: "15px", fontFamily: "Arial" };
+const boxStyle = { border: "1.5px solid", borderRadius: "10px", padding: "25px", textAlign: "center", background: "#131d42" };
 
   if (loading && !data) {
     return (
@@ -706,189 +685,92 @@ const ProfitLoss = () => {
                 </div>
               ) : (
                 <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "13px",
-                      minWidth: "750px",
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ background: "#1e3a8a" }}>
-                        <th
-                          style={{
-                            padding: "10px",
-                            textAlign: "left",
-                          }}
-                        >
-                          Voucher No
-                        </th>
+                  <table style={{width: "100%", borderCollapse: "collapse",fontSize: "13px", minWidth: "750px",}}>
+  <thead>
+    <tr style={{ background: "#1e3a8a" }}>
+      <th style={{ padding: "10px", textAlign: "left" }}>Voucher No</th>
+      <th style={{ padding: "10px", textAlign: "left" }}>Date</th>
+      <th style={{ padding: "10px", textAlign: "left" }}>Narration</th>
+      <th style={{ padding: "10px", textAlign: "right" }}>Debit</th>
+      <th style={{ padding: "10px", textAlign: "right" }}>Credit</th>
+      <th style={{ padding: "10px", textAlign: "center" }}>Action</th>
+    </tr>
+  </thead>
 
-                        <th
-                          style={{
-                            padding: "10px",
-                            textAlign: "left",
-                          }}
-                        >
-                          Date
-                        </th>
+  <tbody>
+    {ledgerVouchers.map((voucher, index) => (
+      <tr
+        key={`${voucher.voucher_id}-${voucher.id}-${index}`}
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+      >
+        <td style={{ padding: "10px" }}>
+          {voucher.voucher_number || "-"}
+        </td>
+        <td style={{ padding: "10px" }}>
+          {formatDate(voucher.voucher_date)}
+        </td>
+        <td style={{ padding: "10px", opacity: 0.8 }}>
+          {voucher.narration || "-"}
+        </td>
+        <td
+          style={{
+            padding: "10px", textAlign: "right", color: "#fbbf24",
+          }}
+        >
+          {formatAmount(voucher.debit)}
+        </td>
+        <td
+          style={{
+            padding: "10px", textAlign: "right", color: "#6ee7b7",
+          }}
+        >
+          {formatAmount(voucher.credit)}
+        </td>
+        <td style={{ padding: "10px", textAlign: "center" }}>
+          <button
+            onClick={() => handleVoucherView(voucher)}
+            style={{
+              background: "#22d3ee", color: "#0b122e",
+              border: "none", padding: "5px 12px",
+              borderRadius: "5px", fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            View
+          </button>
+        </td>
+      </tr>
+    ))}
 
-                        <th
-                          style={{
-                            padding: "10px",
-                            textAlign: "left",
-                          }}
-                        >
-                          Narration
-                        </th>
-
-                        <th
-                          style={{
-                            padding: "10px",
-                            textAlign: "right",
-                          }}
-                        >
-                          Debit
-                        </th>
-
-                        <th
-                          style={{
-                            padding: "10px",
-                            textAlign: "right",
-                          }}
-                        >
-                          Credit
-                        </th>
-
-                        <th
-                          style={{
-                            padding: "10px",
-                            textAlign: "center",
-                          }}
-                        >
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {ledgerVouchers.map((voucher, index) => (
-                        <tr
-                          key={`${voucher.voucher_id}-${voucher.id}-${index}`}
-                          style={{
-                            borderBottom:
-                              "1px solid rgba(255,255,255,0.1)",
-                          }}
-                        >
-                          <td style={{ padding: "10px" }}>
-                            {voucher.voucher_number || "-"}
-                          </td>
-
-                          <td style={{ padding: "10px" }}>
-                            {formatDate(voucher.voucher_date)}
-                          </td>
-
-                          <td
-                            style={{
-                              padding: "10px",
-                              opacity: 0.8,
-                            }}
-                          >
-                            {voucher.narration || "-"}
-                          </td>
-
-                          <td
-                            style={{
-                              padding: "10px",
-                              textAlign: "right",
-                              color: "#fbbf24",
-                            }}
-                          >
-                            {formatAmount(voucher.debit)}
-                          </td>
-
-                          <td
-                            style={{
-                              padding: "10px",
-                              textAlign: "right",
-                              color: "#6ee7b7",
-                            }}
-                          >
-                            {formatAmount(voucher.credit)}
-                          </td>
-
-                          <td
-                            style={{
-                              padding: "10px",
-                              textAlign: "center",
-                            }}
-                          >
-                            <button
-                              onClick={() =>
-                                handleVoucherView(voucher)
-                              }
-                              style={{
-                                background: "#22d3ee",
-                                color: "#0b122e",
-                                border: "none",
-                                padding: "5px 12px",
-                                borderRadius: "5px",
-                                fontWeight: "bold",
-                                cursor: "pointer",
-                              }}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-
-                      <tr
-                        style={{
-                          background: "rgba(0,0,0,0.5)",
-                          fontWeight: "bold",
-                          borderTop: "2px solid #60a5fa",
-                        }}
-                      >
-                        <td
-                          colSpan={2}
-                          style={{ padding: "10px" }}
-                        ></td>
-
-                        <td
-                          style={{
-                            padding: "10px",
-                            textAlign: "right",
-                          }}
-                        >
-                          Total:
-                        </td>
-
-                        <td
-                          style={{
-                            padding: "10px",
-                            textAlign: "right",
-                            color: "#fbbf24",
-                          }}
-                        >
-                          {formatAmount(voucherTotalDebit)}
-                        </td>
-
-                        <td
-                          style={{
-                            padding: "10px",
-                            textAlign: "right",
-                            color: "#6ee7b7",
-                          }}
-                        >
-                          {formatAmount(voucherTotalCredit)}
-                        </td>
-
-                        <td></td>
-                      </tr>
-                    </tbody>
-                  </table>
+    <tr
+      style={{
+        background: "rgba(0,0,0,0.5)",
+        fontWeight: "bold",
+        borderTop: "2px solid #60a5fa",
+      }}
+    >
+      <td colSpan={2} style={{ padding: "10px" }} />
+      <td style={{ padding: "10px", textAlign: "right" }}>
+        Total:
+      </td>
+      <td
+        style={{
+          padding: "10px", textAlign: "right", color: "#fbbf24",
+        }}
+      >
+        {formatAmount(voucherTotalDebit)}
+      </td>
+      <td
+        style={{
+          padding: "10px", textAlign: "right", color: "#6ee7b7",
+        }}
+      >
+        {formatAmount(voucherTotalCredit)}
+      </td>
+      <td />
+    </tr>
+  </tbody>
+</table>
                 </div>
               )}
             </div>

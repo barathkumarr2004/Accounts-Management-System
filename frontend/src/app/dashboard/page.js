@@ -14,6 +14,7 @@ export default function Dashboard() {
     { name: 'Day Book', desc: 'View Daily Transactions', link: '/daybook', icon: 'bi-calendar-date-fill' },
     { name: 'Balance sheet', desc: 'xxxxxxx', link: '/balancesheet', icon: 'bi-calendar-date-fill' },
     { name: 'Profit & Loss', desc: 'yyyyyyy', link: '/profitloss', icon: 'bi-calendar-date-fill' },
+    { name: 'Trial Balance', desc: 'zzzzzzz', link: '/trialbalance', icon: 'bi-calendar-date-fill' },
   ];
 
   return (
@@ -42,6 +43,9 @@ export default function Dashboard() {
         ))}
       </div>
 
+
+
+      
       <div className="mt-4 bg-white p-4 rounded-lg shadow text-center">
         <p className="text-gray-600 mb-0">
           Financial Year: <b>2026-2027</b> | Today: <b>{formattedDate}</b>

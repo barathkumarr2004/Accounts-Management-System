@@ -162,6 +162,114 @@ const getJournalVoucherById = async (req, res) => {
   }
 };
 
+//ledger transaction
+
+const getLedgerTransactions = async (req, res) => {
+  try {
+    const { ledgerId } = req.params;
+
+    if (!ledgerId || Number.isNaN(Number(ledgerId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ledger ID",
+      });
+    }
+
+    const [rows] = await db.query(
+      `
+      SELECT
+        je.id AS entry_id,
+        je.ledger_id,
+
+        jv.id AS voucher_id,
+        jv.voucher_number,
+        jv.voucher_date,
+        jv.narration,
+
+        je.debit,
+        je.credit
+
+      FROM journal_entries je
+
+      INNER JOIN journal_vouchers jv
+        ON jv.id = je.voucher_id
+
+      WHERE je.ledger_id = ?
+
+      ORDER BY
+        jv.voucher_date ASC,
+        jv.id ASC,
+        je.id ASC
+      `,
+      [ledgerId]
+    );
+
+    let runningBalance = 0;
+
+    const transactions = rows.map((row) => {
+      const debit = Number(row.debit || 0);
+      const credit = Number(row.credit || 0);
+
+      // Debit increases asset/expense,
+      // credit increases liability/income.
+      runningBalance += debit - credit;
+
+      return {
+        entry_id: row.entry_id,
+        ledger_id: row.ledger_id,
+
+        voucher_id: row.voucher_id,
+        voucher_number: row.voucher_number,
+
+        voucher_date: row.voucher_date,
+        narration: row.narration,
+
+        debit,
+        credit,
+
+        running_balance: runningBalance,
+      };
+    });
+
+    const totalDebit = transactions.reduce(
+      (sum, row) => sum + row.debit,
+      0
+    );
+
+    const totalCredit = transactions.reduce(
+      (sum, row) => sum + row.credit,
+      0
+    );
+
+    return res.json({
+      success: true,
+
+      ledger_id: Number(ledgerId),
+
+      transactions,
+
+      totalDebit,
+      totalCredit,
+
+      closingBalance:
+        totalDebit - totalCredit,
+    });
+
+  } catch (error) {
+    console.error(
+      "GET LEDGER TRANSACTIONS ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch ledger transactions",
+    });
+  }
+};
+
+
+
 module.exports = {
   createJournalVoucher,
   getAllJournalVouchers,

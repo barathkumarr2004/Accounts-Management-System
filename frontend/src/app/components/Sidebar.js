@@ -39,7 +39,10 @@ export default function Sidebar() {
       name: "Profit & loss",
       path: "/profitloss",
     },
-     
+     {
+      name: "Trial Balance",
+      path: "/trialbalance",
+    },
   ];
 
   return (

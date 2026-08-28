@@ -14,15 +14,7 @@ const ProfitLoss = () => {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const {
-    data,
-    loading,
-    error,
-    ledgerVouchers,
-    ledgerVouchersLoading,
-    ledgerVouchersError,
-  } = useSelector((state) => state.profitLoss);
-
+  const { data, loading, error, ledgerVouchers, ledgerVouchersLoading, ledgerVouchersError } = useSelector((state) => state.profitLoss);
   const [showModal, setShowModal] = useState(false);
   const [selectedLedger, setSelectedLedger] = useState(null);
 
@@ -93,21 +85,8 @@ const ProfitLoss = () => {
     0
   );
 
-  const pageStyle = {
-    minHeight: "100vh",
-    background: "#0b122e",
-    color: "white",
-    padding: "15px",
-    fontFamily: "Arial",
-  };
-
-  const boxStyle = {
-    border: "1.5px solid",
-    borderRadius: "10px",
-    padding: "25px",
-    textAlign: "center",
-    background: "#131d42",
-  };
+  const pageStyle = { minHeight: "100vh", background: "#0b122e", color: "white", padding: "15px", fontFamily: "Arial" };
+const boxStyle = { border: "1.5px solid", borderRadius: "10px", padding: "25px", textAlign: "center", background: "#131d42" };
 
   if (loading && !data) {
     return (

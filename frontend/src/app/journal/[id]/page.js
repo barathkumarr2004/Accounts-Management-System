@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchJournalVoucherById,
   clearSelectedJournal,
-} from "../../store/slices/journalSlice";
+} from "../../../store/slices/journalSlice";
 
 export default function ViewJournalPage() {
   const params = useParams();

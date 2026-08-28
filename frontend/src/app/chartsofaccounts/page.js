@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useGetChartOfAccountsQuery } from "@/app/store/api/chartOfAccountsApi";
+import { useGetChartOfAccountsQuery } from "@/store/api/chartOfAccountsApi";
 
 const TreeNode = ({ node, level = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);

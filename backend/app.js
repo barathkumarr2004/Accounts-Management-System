@@ -6,7 +6,7 @@ const ledgerRoutes = require("./routes/ledgerRoutes");
 const chartOfAccountsRoutes = require('./routes/chartofAccountsRoutes'); 
 const journalRoutes = require("./routes/journalRoutes");
 const balanceSheetRoutes = require("./routes/balanceSheetRoutes");
-const profitLossRoutes =require("./routes/profitLossRoutes");
+const profitLossRoutes =require("./routes/profit-lossRoutes");
 
 const app = express();
 

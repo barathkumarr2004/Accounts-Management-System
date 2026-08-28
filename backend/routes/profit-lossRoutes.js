@@ -1,7 +1,7 @@
 const express=require("express");
 const router=express.Router();
 
-const profitLossController = require("../controllers/profit-lossController");
+const profitLossController = require("../controllers/profitLossController");
 
 router.get("/", profitLossController.getProfitLoss);
 

@@ -1,6 +1,5 @@
 const db = require("../config/db");
 
-// Unakku ledger click panna voucher list venum la - ithu than da query
 const getLedgerVouchers = async (ledgerId) => {
   const [rows] = await db.query(`
     SELECT
@@ -19,7 +18,7 @@ const getLedgerVouchers = async (ledgerId) => {
   return rows;
 };
 
-// View button -> /journal/10 ku full detail
+
 const getVoucherFullDetail = async (voucherId) => {
   const [voucher] = await db.query(`SELECT * FROM journal_vouchers WHERE id =?`, [voucherId]);
   const [entries] = await db.query(`

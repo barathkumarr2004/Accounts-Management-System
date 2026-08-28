@@ -254,45 +254,7 @@ const getVouchersByLedger = async (req, res) => {
   }
 };
 
-const getVoucherDetail = async (req, res) => {
-  try {
-    const id = Number(req.params.voucherId);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid voucher ID",
-      });
-    }
-
-    const data = await model.getVoucherFullDetail(id);
-
-    if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: "Voucher not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    console.error(
-      "GET PROFIT LOSS VOUCHER ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message: "Unable to load voucher details",
-    });
-  }
-};
-
 module.exports = {
   getProfitLoss,
   getVouchersByLedger,
-  getVoucherDetail,
 };

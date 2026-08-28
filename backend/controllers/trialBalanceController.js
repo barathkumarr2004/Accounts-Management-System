@@ -30,9 +30,7 @@ const getTrialBalanceController = async (req, res) => {
 
 const getVouchersByLedger = async (req, res) => {
   try {
-    // ✅ ledgerId illa id rendu vanthalum eduthukkum! Ithu than fix!
     const ledgerId = req.params.ledgerId || req.params.id;
-    // console.log("Fetching vouchers for ledger:", ledgerId);
     const vouchers = await model.getLedgerVouchers(ledgerId);
     res.json({ success: true, data: vouchers, vouchers: vouchers });
   } catch (err) {

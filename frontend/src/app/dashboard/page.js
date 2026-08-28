@@ -12,9 +12,9 @@ export default function Dashboard() {
     { name: 'Ledgers', desc: 'Create & Manage Ledgers', link: '/ledgers', icon: 'bi-journal-bookmark-fill' },
     { name: 'Journal Voucher', desc: 'Enter Journal Entries', link: '/journal', icon: 'bi-receipt-cutoff' },
     { name: 'Day Book', desc: 'View Daily Transactions', link: '/daybook', icon: 'bi-calendar-date-fill' },
-    { name: 'Balance sheet', desc: 'xxxxxxx', link: '/balancesheet', icon: 'bi-calendar-date-fill' },
-    { name: 'Profit & Loss', desc: 'yyyyyyy', link: '/profitloss', icon: 'bi-calendar-date-fill' },
-    { name: 'Trial Balance', desc: 'zzzzzzz', link: '/trialbalance', icon: 'bi-calendar-date-fill' },
+    { name: 'Balance sheet', desc: 'View Assets & Liabilities', link: '/balancesheet', icon: 'bi-bank2' },
+    { name: 'Profit & Loss', desc: 'View Income & Expenses', link: '/profitloss', icon: 'bi-graph-up-arrow' },
+    { name: 'Trial Balance', desc: 'View Ledger Balances & Tally Sheet', link: '/trialbalance', icon: 'bi-journal-check' },
   ];
 
   return (

@@ -1,7 +1,6 @@
 const db = require("../config/db");
 
 const getTrialBalance = async () => {
-  // je la irunthu ledger wise total dr, cr edukkrom
   const [rows] = await db.query(`
     SELECT
       l.id as ledger_id,
@@ -35,4 +34,3 @@ const getLedgerVouchers = async (ledgerId) => {
 
 module.exports = { getTrialBalance, getLedgerVouchers };
 
-// module.exports = { getTrialBalance };

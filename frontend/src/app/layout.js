@@ -1,5 +1,5 @@
-import Sidebar from "./components/Sidebar";
-import ReduxProvider from "./store/provider";
+import Sidebar from "../components/Sidebar";
+import ReduxProvider from "../store/provider";
 
 export const metadata = {
   title: "Accounts Management",

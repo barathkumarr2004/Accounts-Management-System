@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { fetchJournalVouchers } from "../store/slices/journalSlice";
+import { fetchJournalVouchers } from "../../store/slices/journalSlice";
 
 export default function DayBookPage() {
   const dispatch = useDispatch();

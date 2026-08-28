@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import { getLedgers } from "../store/slices/ledgerSlice";
+import { getLedgers } from "../../store/slices/ledgerSlice";
 import {
   createJournalVoucher,
   fetchJournalVouchers,
-} from "../store/slices/journalSlice";
+} from "../../store/slices/journalSlice";
 
 const createEmptyEntry = (id) => ({
   id,

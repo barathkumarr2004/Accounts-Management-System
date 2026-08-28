@@ -1,4 +1,4 @@
-import LedgerForm from "../components/LedgerForm";
+import LedgerForm from "../../components/LedgerForm";
 
 export default function Ledgers() {
   return (

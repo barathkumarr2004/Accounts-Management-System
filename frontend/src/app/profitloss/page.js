@@ -8,7 +8,7 @@ import {
   fetchProfitLoss,
   fetchLedgerVouchers,
   clearLedgerVouchers,
-} from "../store/slices/profitLossSlice";
+} from "../../store/slices/profitLossSlice";
 
 const ProfitLoss = () => {
   const dispatch = useDispatch();

@@ -22,6 +22,7 @@ const BalanceSheet = () => {
       console.error(err);
     }
   };
+
   // ==== MUDINCHU DA ====
 
   useEffect(() => {
@@ -41,8 +42,7 @@ const BalanceSheet = () => {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0b122e", color: "white", padding: "15px", fontFamily: "Arial" }}>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: isTally? "2px solid #22d3ee" : "2px solid #f87171", borderRadius: "8px", padding: "12px 20px", background: "linear-gradient(90deg, #0b122e, #1e3a8a)", marginBottom: "12px" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: isTally? "2px solid #22d3ee" : "2px solid #f87171", borderRadius: "8px", padding: "12px 20px", background: "linear-gradient(90deg, #0b122e, #1e3a8a)", marginBottom: "12px" }}>
         <h1 style={{ margin: 0, fontSize: "22px", fontWeight: "900" }}>BALANCE SHEET</h1>
         <span style={{ fontSize: "11px", background: isTally? "rgba(34,211,238,0.2)" : "rgba(248,113,113,0.2)", color: isTally? "#67e8f9" : "#fca5a5", padding: "5px 12px", borderRadius: "20px", border: isTally? "1px solid #22d3ee" : "1px solid #f87171" }}>
           {isTally? `Total Tallied: ${data.totalLiabilities}.00 = ${data.totalAssets}.00` : `Not Tallied: ${data.totalLiabilities}.00 ≠ ${data.totalAssets}.00`}
@@ -104,12 +104,12 @@ const BalanceSheet = () => {
 
       {/* ===== MODAL PUTHUSA ADD PANNEN DA - UN DESIGN LA VE ==== */}
       {showModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
+         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
          <div style={{ background: "#131d42", border: "1.5px solid #60a5fa", borderRadius: "12px", width: "90%", maxHeight: "80vh", overflow: "auto", padding: "20px" }}>
-  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
-    <h3 style={{ margin: 0, color: "#22d3ee" }}>{selectedLedger?.name} - Vouchers</h3>
-    <button onClick={() => setShowModal(false)} style={{ background: "#f87171", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px" }}>Close</button>
-  </div>
+         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
+         <h3 style={{ margin: 0, color: "#22d3ee" }}>{selectedLedger?.name} - Vouchers</h3>
+         <button onClick={() => setShowModal(false)} style={{ background: "#f87171", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px" }}>Close</button>
+         </div>
 
   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", tableLayout: "fixed" }}>
   <thead>
@@ -144,7 +144,7 @@ const BalanceSheet = () => {
     </tr>
   </tbody>
 </table>
-          </div>
+  </div>
           </div>
       )}
     </div>

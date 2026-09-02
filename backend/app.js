@@ -8,6 +8,7 @@ const journalRoutes = require("./routes/journalRoutes");
 const balanceSheetRoutes = require("./routes/balanceSheetRoutes");
 const profitLossRoutes =require("./routes/profitLossRoutes");
 const trialBalanceRoutes =require("./routes/trialBalanceRoutes");
+const stockRoutes = require("./routes/stockRoutes");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/balancesheet", balanceSheetRoutes);
 app.use("/api/profitloss",profitLossRoutes);
 app.use("/api/trialbalance",trialBalanceRoutes);
+app.use("/api/stocks", stockRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "API route not found" });

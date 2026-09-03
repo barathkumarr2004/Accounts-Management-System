@@ -3,21 +3,38 @@ const db = require("../config/db");
 const getAllStocks = async () => {
   const [rows] = await db.query(`
     SELECT
-      id,
-      item_code,
-      item_name,
-      category,
-      unit,
-      opening_qty,
-      opening_rate,
-      purchase_rate,
-      sales_rate,
-      reorder_level,
-      is_active,
-      created_at,
-      updated_at
-    FROM stock_master
-    ORDER BY id DESC
+      sm.id,
+      sm.item_code,
+      sm.item_name,
+      sm.category,
+      sm.unit,
+      sm.opening_qty,
+      sm.opening_rate,
+      sm.purchase_rate,
+      sm.sales_rate,
+      sm.reorder_level,
+      sm.is_active,
+      sm.created_at,
+      sm.updated_at,
+      sm.opening_qty
+      + COALESCE(
+          (
+            SELECT SUM(
+              CASE
+                WHEN st.transaction_type = 'IN'
+                  THEN st.quantity
+                WHEN st.transaction_type = 'OUT'
+                  THEN -st.quantity
+                ELSE 0
+              END
+            )
+            FROM stock_transactions st
+            WHERE st.stock_id = sm.id
+          ),
+          0
+        ) AS current_qty
+    FROM stock_master sm
+    ORDER BY sm.id DESC
   `);
 
   return rows;
@@ -27,21 +44,38 @@ const getStockById = async (id) => {
   const [rows] = await db.query(
     `
     SELECT
-      id,
-      item_code,
-      item_name,
-      category,
-      unit,
-      opening_qty,
-      opening_rate,
-      purchase_rate,
-      sales_rate,
-      reorder_level,
-      is_active,
-      created_at,
-      updated_at
-    FROM stock_master
-    WHERE id = ?
+      sm.id,
+      sm.item_code,
+      sm.item_name,
+      sm.category,
+      sm.unit,
+      sm.opening_qty,
+      sm.opening_rate,
+      sm.purchase_rate,
+      sm.sales_rate,
+      sm.reorder_level,
+      sm.is_active,
+      sm.created_at,
+      sm.updated_at,
+      sm.opening_qty
+      + COALESCE(
+          (
+            SELECT SUM(
+              CASE
+                WHEN st.transaction_type = 'IN'
+                  THEN st.quantity
+                WHEN st.transaction_type = 'OUT'
+                  THEN -st.quantity
+                ELSE 0
+              END
+            )
+            FROM stock_transactions st
+            WHERE st.stock_id = sm.id
+          ),
+          0
+        ) AS current_qty
+    FROM stock_master sm
+    WHERE sm.id = ?
     `,
     [id]
   );
@@ -153,9 +187,7 @@ const updateStock = async (id, stock) => {
     ]
   );
 
-  if (result.affectedRows === 0) {
-    return null;
-  }
+  if (!result.affectedRows) return null;
 
   return getStockById(id);
 };

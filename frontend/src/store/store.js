@@ -5,7 +5,9 @@ import ledgerReducer from "./slices/ledgerSlice";
 import journalReducer from "./slices/journalSlice";
 import profitLossReducer from "./slices/profitLossSlice";
 import stockReducer from "./slices/stockSlice";
+import salesReducer from "./slices/salesSlice";
 import { chartOfAccountsApi } from "./api/chartOfAccountsApi";
+
 
 const store = configureStore({
   reducer: {
@@ -14,6 +16,7 @@ const store = configureStore({
     journals: journalReducer,
     profitLoss: profitLossReducer,
     stock: stockReducer,
+    sales: salesReducer,
 
     [chartOfAccountsApi.reducerPath]: chartOfAccountsApi.reducer,
   },

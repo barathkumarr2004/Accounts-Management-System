@@ -1,9 +1,29 @@
 const journalModel = require("../models/journalModel");
+const db = require("../config/db");
 
-// POST /api/journals
+const validVoucherTypes = [
+  "JOURNAL",
+  "SALES",
+  "PURCHASE",
+  "RECEIPT",
+  "PAYMENT",
+];
+
 const createJournalVoucher = async (req, res) => {
   try {
-    const { voucherDate, narration, entries } = req.body;
+    const {
+      voucherType = "JOURNAL",
+      voucherDate,
+      narration,
+      entries,
+    } = req.body;
+
+    if (!validVoucherTypes.includes(voucherType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid voucher type",
+      });
+    }
 
     if (!voucherDate) {
       return res.status(400).json({
@@ -42,6 +62,13 @@ const createJournalVoucher = async (req, res) => {
         });
       }
 
+      if (!Number.isFinite(debit) || !Number.isFinite(credit)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid debit or credit amount",
+        });
+      }
+
       if (debit < 0 || credit < 0) {
         return res.status(400).json({
           success: false,
@@ -59,7 +86,8 @@ const createJournalVoucher = async (req, res) => {
       if (debit === 0 && credit === 0) {
         return res.status(400).json({
           success: false,
-          message: "Every entry must have a debit or credit amount",
+          message:
+            "Every entry must have a debit or credit amount",
         });
       }
     }
@@ -74,18 +102,16 @@ const createJournalVoucher = async (req, res) => {
       0
     );
 
-    if (totalDebit !== totalCredit) {
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return res.status(400).json({
         success: false,
         message: "Total debit and total credit must be equal",
-        data: {
-          totalDebit,
-          totalCredit,
-        },
+        data: { totalDebit, totalCredit },
       });
     }
 
     const journal = await journalModel.createJournalVoucher({
+      voucherType,
       voucherDate,
       narration,
       entries,
@@ -106,7 +132,6 @@ const createJournalVoucher = async (req, res) => {
   }
 };
 
-// GET /api/journals
 const getAllJournalVouchers = async (req, res) => {
   try {
     const journals = await journalModel.getAllJournals();
@@ -126,7 +151,6 @@ const getAllJournalVouchers = async (req, res) => {
   }
 };
 
-// GET /api/journals/:id
 const getJournalVoucherById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -162,8 +186,6 @@ const getJournalVoucherById = async (req, res) => {
   }
 };
 
-//ledger transaction
-
 const getLedgerTransactions = async (req, res) => {
   try {
     const { ledgerId } = req.params;
@@ -180,22 +202,17 @@ const getLedgerTransactions = async (req, res) => {
       SELECT
         je.id AS entry_id,
         je.ledger_id,
-
         jv.id AS voucher_id,
         jv.voucher_number,
+        jv.voucher_type,
         jv.voucher_date,
         jv.narration,
-
         je.debit,
         je.credit
-
       FROM journal_entries je
-
       INNER JOIN journal_vouchers jv
         ON jv.id = je.voucher_id
-
       WHERE je.ledger_id = ?
-
       ORDER BY
         jv.voucher_date ASC,
         jv.id ASC,
@@ -210,23 +227,18 @@ const getLedgerTransactions = async (req, res) => {
       const debit = Number(row.debit || 0);
       const credit = Number(row.credit || 0);
 
-      // Debit increases asset/expense,
-      // credit increases liability/income.
       runningBalance += debit - credit;
 
       return {
         entry_id: row.entry_id,
         ledger_id: row.ledger_id,
-
         voucher_id: row.voucher_id,
         voucher_number: row.voucher_number,
-
+        voucher_type: row.voucher_type,
         voucher_date: row.voucher_date,
         narration: row.narration,
-
         debit,
         credit,
-
         running_balance: runningBalance,
       };
     });
@@ -241,25 +253,16 @@ const getLedgerTransactions = async (req, res) => {
       0
     );
 
-    return res.json({
+    return res.status(200).json({
       success: true,
-
       ledger_id: Number(ledgerId),
-
       transactions,
-
       totalDebit,
       totalCredit,
-
-      closingBalance:
-        totalDebit - totalCredit,
+      closingBalance: totalDebit - totalCredit,
     });
-
   } catch (error) {
-    console.error(
-      "GET LEDGER TRANSACTIONS ERROR:",
-      error
-    );
+    console.error("GET LEDGER TRANSACTIONS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -268,10 +271,9 @@ const getLedgerTransactions = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
   createJournalVoucher,
   getAllJournalVouchers,
   getJournalVoucherById,
+  getLedgerTransactions,
 };

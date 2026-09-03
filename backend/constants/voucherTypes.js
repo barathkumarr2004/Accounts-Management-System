@@ -1,0 +1,9 @@
+const VOUCHER_TYPES = {
+  SALES: "SALES",
+  PURCHASE: "PURCHASE",
+  RECEIPT: "RECEIPT",
+  PAYMENT: "PAYMENT",
+  JOURNAL: "JOURNAL",
+};
+
+module.exports = VOUCHER_TYPES;

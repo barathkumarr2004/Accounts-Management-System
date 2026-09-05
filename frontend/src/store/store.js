@@ -7,6 +7,8 @@ import profitLossReducer from "./slices/profitLossSlice";
 import stockReducer from "./slices/stockSlice";
 import salesReducer from "./slices/salesSlice";
 import purchaseReducer from "./slices/purchaseSlice";
+import receiptReducer from "./slices/receiptSlice";
+import paymentReducer from "./slices/paymentSlice";
 import { chartOfAccountsApi } from "./api/chartOfAccountsApi";
 
 
@@ -19,6 +21,8 @@ const store = configureStore({
     stock: stockReducer,
     sales: salesReducer,
     purchase: purchaseReducer,
+    receipt: receiptReducer,
+    payment: paymentReducer,
 
     [chartOfAccountsApi.reducerPath]: chartOfAccountsApi.reducer,
   },

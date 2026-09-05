@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,35 +11,66 @@ export default function DayBookPage() {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const {
-    journals = [],
-    loading,
-    error,
-  } = useSelector((state) => state.journals);
+  const { journals = [], loading, error } = useSelector(
+    (state) => state.journals
+  );
 
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
 
   useEffect(() => {
     dispatch(fetchJournalVouchers());
   }, [dispatch]);
 
-  const filteredJournals = journals.filter((journal) => {
-    const value = search.toLowerCase();
+  const filteredJournals = useMemo(() => {
+    const value = search.toLowerCase().trim();
 
-    return (
-      String(journal.voucher_number || "")
-        .toLowerCase()
-        .includes(value) ||
-      String(journal.narration || "")
-        .toLowerCase()
-        .includes(value) ||
-      journal.entries?.some((entry) =>
-        String(entry.ledger_name || "")
+    return journals.filter((journal) => {
+      const type = String(
+        journal.voucher_type || "JOURNAL"
+      ).toUpperCase();
+
+      const typeMatch =
+        typeFilter === "ALL" || type === typeFilter;
+
+      const searchMatch =
+        !value ||
+        String(journal.voucher_number || "")
           .toLowerCase()
-          .includes(value)
-      )
-    );
-  });
+          .includes(value) ||
+        type.toLowerCase().includes(value) ||
+        String(journal.narration || "")
+          .toLowerCase()
+          .includes(value) ||
+        journal.entries?.some((entry) =>
+          String(entry.ledger_name || "")
+            .toLowerCase()
+            .includes(value)
+        );
+
+      return typeMatch && searchMatch;
+    });
+  }, [journals, search, typeFilter]);
+
+  const totalDebit = filteredJournals.reduce(
+    (total, journal) =>
+      total +
+      (journal.entries || []).reduce(
+        (sum, entry) => sum + Number(entry.debit || 0),
+        0
+      ),
+    0
+  );
+
+  const totalCredit = filteredJournals.reduce(
+    (total, journal) =>
+      total +
+      (journal.entries || []).reduce(
+        (sum, entry) => sum + Number(entry.credit || 0),
+        0
+      ),
+    0
+  );
 
   const formatDate = (date) =>
     date
@@ -56,475 +87,930 @@ export default function DayBookPage() {
       maximumFractionDigits: 2,
     });
 
+  const typeClass = (type) => {
+    switch (type) {
+      case "SALES":
+        return "sales";
+      case "PURCHASE":
+        return "purchase";
+      case "RECEIPT":
+        return "receipt";
+      case "PAYMENT":
+        return "payment";
+      default:
+        return "journal";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 lg:px-8">
+    <>
+      <style>{`
+        * {
+          box-sizing: border-box;
+        }
 
-        {/* =====================================================
-            HEADER
-        ====================================================== */}
-        <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        body {
+          margin: 0;
+          background: #07101f;
+          color: #e5e7eb;
+          font-family: Arial, Helvetica, sans-serif;
+        }
 
-          <div className="relative px-6 py-6 md:px-8">
+        .daybook {
+          min-height: 100vh;
+          padding: 28px;
+          background:
+            radial-gradient(circle at top right, #13264a 0, transparent 32%),
+            #07101f;
+        }
 
-            <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-blue-100/50 blur-3xl" />
-            <div className="absolute bottom-0 left-1/3 h-20 w-20 rounded-full bg-indigo-100/40 blur-2xl" />
+        .container {
+          max-width: 1450px;
+          margin: auto;
+        }
 
-            <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        .header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          padding: 24px 28px;
+          margin-bottom: 22px;
+          background: #0d1930;
+          border: 1px solid #20365b;
+          border-radius: 16px;
+          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+        }
 
-              <div className="flex items-center gap-4">
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
 
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-2xl text-white shadow-lg shadow-blue-200">
-                  📒
+        .icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 58px;
+          height: 58px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #2563eb, #4f46e5);
+          font-size: 27px;
+        }
+
+        .title {
+          margin: 0;
+          font-size: 27px;
+          font-weight: 800;
+          color: #f8fafc;
+        }
+
+        .subtitle {
+          margin: 6px 0 0;
+          color: #94a3b8;
+          font-size: 13px;
+        }
+
+        .status {
+          display: inline-block;
+          margin-left: 10px;
+          padding: 4px 9px;
+          border-radius: 20px;
+          background: #063b31;
+          color: #34d399;
+          font-size: 10px;
+          font-weight: 700;
+          vertical-align: middle;
+        }
+
+        .new-btn {
+          padding: 11px 17px;
+          border-radius: 9px;
+          background: linear-gradient(135deg, #2563eb, #4f46e5);
+          color: #fff;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 700;
+          transition: 0.2s;
+        }
+
+        .new-btn:hover {
+          transform: translateY(-2px);
+        }
+
+        .summary {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+          margin-bottom: 22px;
+        }
+
+        .card {
+          padding: 20px;
+          background: #0d1930;
+          border: 1px solid #20365b;
+          border-radius: 14px;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .card-label {
+          margin: 0;
+          color: #94a3b8;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .card-value {
+          margin: 8px 0 0;
+          color: #f8fafc;
+          font-size: 24px;
+          font-weight: 800;
+        }
+
+        .card-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 43px;
+          height: 43px;
+          border-radius: 11px;
+          background: #14274a;
+          color: #60a5fa;
+          font-size: 19px;
+        }
+
+        .debit-icon {
+          color: #34d399;
+        }
+
+        .credit-icon {
+          color: #c084fc;
+        }
+
+        .main {
+          overflow: hidden;
+          background: #0d1930;
+          border: 1px solid #20365b;
+          border-radius: 16px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+        }
+
+        .toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 20px 22px;
+          border-bottom: 1px solid #20365b;
+        }
+
+        .section-title {
+          margin: 0;
+          color: #f8fafc;
+          font-size: 17px;
+          font-weight: 800;
+        }
+
+        .count {
+          display: inline-block;
+          margin-left: 8px;
+          padding: 3px 8px;
+          border-radius: 20px;
+          background: #142d55;
+          color: #60a5fa;
+          font-size: 10px;
+        }
+
+        .section-subtitle {
+          margin: 5px 0 0;
+          color: #64748b;
+          font-size: 11px;
+        }
+
+        .controls {
+          display: flex;
+          gap: 10px;
+        }
+
+        .filter,
+        .search {
+          height: 40px;
+          border: 1px solid #294366;
+          border-radius: 8px;
+          background: #091527;
+          color: #cbd5e1;
+          outline: none;
+          font-size: 12px;
+        }
+
+        .filter {
+          padding: 0 11px;
+          cursor: pointer;
+        }
+
+        .search-box {
+          position: relative;
+          width: 320px;
+        }
+
+        .search {
+          width: 100%;
+          padding: 0 35px 0 36px;
+        }
+
+        .search:focus,
+        .filter:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #64748b;
+        }
+
+        .clear {
+          position: absolute;
+          right: 7px;
+          top: 50%;
+          transform: translateY(-50%);
+          border: 0;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+        }
+
+        .table-wrap {
+          overflow-x: auto;
+        }
+
+        table {
+          width: 100%;
+          min-width: 1150px;
+          border-collapse: collapse;
+        }
+
+        th {
+          padding: 14px 16px;
+          background: #091527;
+          border-bottom: 1px solid #20365b;
+          color: #64748b;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          text-align: left;
+          text-transform: uppercase;
+        }
+
+        th.amount,
+        td.amount {
+          text-align: right;
+        }
+
+        th.action,
+        td.action {
+          text-align: center;
+        }
+
+        td {
+          padding: 17px 16px;
+          border-bottom: 1px solid #172944;
+          vertical-align: top;
+        }
+
+        tbody tr {
+          transition: 0.15s;
+        }
+
+        tbody tr:hover {
+          background: #101f38;
+        }
+
+        .number {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 7px;
+          background: #14233a;
+          color: #64748b;
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .date {
+          color: #cbd5e1;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        .date-note {
+          margin-top: 5px;
+          color: #475569;
+          font-size: 9px;
+        }
+
+        .voucher {
+          display: inline-block;
+          padding: 7px 10px;
+          border: 1px solid #214a82;
+          border-radius: 7px;
+          background: #10294c;
+          color: #60a5fa;
+          font-size: 11px;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+
+        .type {
+          display: inline-flex;
+          padding: 7px 10px;
+          border-radius: 7px;
+          font-size: 9px;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+
+        .type.journal {
+          background: #273449;
+          color: #cbd5e1;
+        }
+
+        .type.sales {
+          background: #102d52;
+          color: #60a5fa;
+        }
+
+        .type.purchase {
+          background: #422710;
+          color: #fb923c;
+        }
+
+        .type.receipt {
+          background: #06382e;
+          color: #34d399;
+        }
+
+        .type.payment {
+          background: #421d25;
+          color: #f87171;
+        }
+
+        .particulars {
+          min-width: 290px;
+          max-width: 390px;
+        }
+
+        .ledger {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 7px;
+          color: #cbd5e1;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #3b82f6;
+        }
+
+        .narration {
+          margin-top: 10px;
+          padding: 8px 10px;
+          border-left: 2px solid #294b7a;
+          background: #091527;
+          border-radius: 5px;
+        }
+
+        .narration-label {
+          color: #475569;
+          font-size: 8px;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .narration-text {
+          margin-top: 3px;
+          color: #64748b;
+          font-size: 10px;
+          font-style: italic;
+        }
+
+        .amount-value {
+          color: #60a5fa;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          margin-bottom: 7px;
+        }
+
+        .credit-value {
+          color: #c084fc;
+        }
+
+        .dash {
+          color: #334155;
+        }
+
+        .view {
+          padding: 8px 12px;
+          border: 1px solid #294366;
+          border-radius: 7px;
+          background: #0b192e;
+          color: #60a5fa;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .view:hover {
+          border-color: #3b82f6;
+          background: #10294c;
+        }
+
+        .state {
+          min-height: 400px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          padding: 30px;
+          text-align: center;
+        }
+
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #1e3a5f;
+          border-top-color: #3b82f6;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .state-icon {
+          font-size: 38px;
+        }
+
+        .state-title {
+          margin: 14px 0 0;
+          color: #e2e8f0;
+          font-size: 16px;
+          font-weight: 800;
+        }
+
+        .state-text {
+          max-width: 430px;
+          margin: 7px 0 0;
+          color: #64748b;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .clear-btn {
+          margin-top: 16px;
+          padding: 9px 14px;
+          border: 1px solid #294366;
+          border-radius: 8px;
+          background: #0b192e;
+          color: #94a3b8;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .error {
+          margin: 22px;
+          padding: 16px;
+          border: 1px solid #6b2832;
+          border-radius: 10px;
+          background: #29151b;
+        }
+
+        .error-title {
+          margin: 0;
+          color: #fca5a5;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .error-text {
+          margin: 5px 0 0;
+          color: #f87171;
+          font-size: 11px;
+        }
+
+        .footer {
+          display: flex;
+          justify-content: space-between;
+          padding: 13px 3px;
+          color: #475569;
+          font-size: 10px;
+        }
+
+        .footer strong {
+          color: #64748b;
+        }
+
+        @media (max-width: 900px) {
+          .daybook {
+            padding: 16px;
+          }
+
+          .header {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .new-btn {
+            width: 100%;
+            text-align: center;
+          }
+
+          .summary {
+            grid-template-columns: 1fr;
+          }
+
+          .toolbar {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .controls {
+            flex-direction: column;
+          }
+
+          .search-box {
+            width: 100%;
+          }
+
+          .footer {
+            flex-direction: column;
+            gap: 7px;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .daybook {
+            padding: 10px;
+          }
+
+          .header {
+            padding: 20px;
+          }
+
+          .header-left {
+            align-items: flex-start;
+          }
+
+          .title {
+            font-size: 22px;
+          }
+
+          .status {
+            display: none;
+          }
+
+          .card-value {
+            font-size: 21px;
+          }
+        }
+      `}</style>
+
+      <div className="daybook">
+        <div className="container">
+          <div className="header">
+            <div className="header-left">
+
+              <div>
+                <h1 className="title">
+                  Day Book
+                </h1>
+
+                <p className="subtitle">
+                  Complete overview of accounting transactions
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="summary">
+            <div className="card">
+              <div className="card-top">
+                <div>
+                  <p className="card-label">Total Vouchers</p>
+                  <p className="card-value">{journals.length}</p>
                 </div>
 
+                <div className="card-icon">📋</div>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-top">
                 <div>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-                      Day Book
-                    </h1>
-
-                    <span className="hidden rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 sm:inline-flex">
-                      Transactions
-                    </span>
-                  </div>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    View and manage all journal transactions
+                  <p className="card-label">Total Debit</p>
+                  <p className="card-value">
+                    ₹ {formatAmount(totalDebit)}
                   </p>
                 </div>
 
+                <div className="card-icon debit-icon">↓</div>
               </div>
-
-              <Link
-                href="/journal"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-blue-200 transition duration-200 hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg"
-              >
-                <span className="text-lg leading-none">+</span>
-                New Journal
-              </Link>
-
             </div>
-          </div>
-        </div>
 
-        {/* =====================================================
-            SUMMARY CARDS
-        ====================================================== */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="card">
+              <div className="card-top">
+                <div>
+                  <p className="card-label">Total Credit</p>
+                  <p className="card-value">
+                    ₹ {formatAmount(totalCredit)}
+                  </p>
+                </div>
 
-          {/* Total Vouchers */}
-          <div className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
-
-            <div className="flex items-center justify-between">
-
-              <div>
-                <p className="text-sm font-medium text-slate-500">
-                  Total Vouchers
-                </p>
-
-                <p className="mt-2 text-3xl font-bold text-slate-900">
-                  {journals.length}
-                </p>
-
-                <p className="mt-1 text-xs text-slate-400">
-                  Journal transactions
-                </p>
+                <div className="card-icon credit-icon">↑</div>
               </div>
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl transition group-hover:bg-blue-100">
-                📋
-              </div>
-
             </div>
           </div>
 
-        </div>
-
-        {/* =====================================================
-            MAIN DAY BOOK CARD
-        ====================================================== */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-          {/* Toolbar */}
-          <div className="border-b border-slate-200 bg-white px-5 py-5 md:px-6">
-
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-
+          <div className="main">
+            <div className="toolbar">
               <div>
-                <div className="flex items-center gap-3">
-
-                  <h2 className="text-lg font-bold text-slate-900">
-                    Journal Transactions
-                  </h2>
-
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">
+                <h2 className="section-title">
+                  All Transactions
+                  <span className="count">
                     {filteredJournals.length}
                   </span>
+                </h2>
 
-                </div>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Complete record of your journal vouchers
+                <p className="section-subtitle">
+                  Search and filter voucher transactions
                 </p>
               </div>
 
-              {/* Search */}
-              <div className="relative w-full lg:w-96">
+              <div className="controls">
+                <select
+                  className="filter"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="ALL">All Types</option>
+                  <option value="JOURNAL">Journal</option>
+                  <option value="SALES">Sales</option>
+                  <option value="PURCHASE">Purchase</option>
+                  <option value="RECEIPT">Receipt</option>
+                  <option value="PAYMENT">Payment</option>
+                </select>
 
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                  🔍
-                </span>
+                <div className="search-box">
+                  <span className="search-icon">🔍</span>
 
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search voucher, ledger, narration..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
-                />
+                  <input
+                    className="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search voucher, ledger, narration..."
+                  />
 
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                  >
-                    ✕
-                  </button>
-                )}
-
-              </div>
-
-            </div>
-          </div>
-
-          {/* =====================================================
-              LOADING
-          ====================================================== */}
-          {loading && (
-            <div className="flex min-h-[400px] flex-col items-center justify-center">
-
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
-
-              <p className="mt-4 text-sm font-semibold text-slate-700">
-                Loading Day Book...
-              </p>
-
-              <p className="mt-1 text-xs text-slate-400">
-                Please wait while transactions are loaded
-              </p>
-
-            </div>
-          )}
-
-          {/* =====================================================
-              ERROR
-          ====================================================== */}
-          {!loading && error && (
-            <div className="p-6">
-
-              <div className="rounded-xl border border-red-200 bg-red-50 p-5">
-
-                <div className="flex gap-3">
-
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-100 text-lg">
-                    ⚠️
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-red-800">
-                      Unable to load transactions
-                    </h3>
-
-                    <p className="mt-1 text-sm text-red-600">
-                      {error}
-                    </p>
-                  </div>
-
+                  {search && (
+                    <button
+                      className="clear"
+                      onClick={() => setSearch("")}
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
-          )}
 
-          {/* =====================================================
-              EMPTY STATE
-          ====================================================== */}
-          {!loading &&
-            !error &&
-            filteredJournals.length === 0 && (
-              <div className="flex min-h-[400px] flex-col items-center justify-center px-5 text-center">
-
-                <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-50 to-indigo-50 text-4xl shadow-inner">
-                  {search ? "🔍" : "📒"}
-                </div>
-
-                <h3 className="mt-5 text-xl font-bold text-slate-800">
-                  {search
-                    ? "No transactions found"
-                    : "No Journal Transactions"}
-                </h3>
-
-                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                  {search
-                    ? "No voucher, ledger or narration matches your search."
-                    : "Create a Journal Voucher to start recording your accounting transactions."}
+            {loading && (
+              <div className="state">
+                <div className="spinner" />
+                <p className="state-title">
+                  Loading Day Book...
                 </p>
-
-                {search ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="mt-5 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                  >
-                    Clear Search
-                  </button>
-                ) : (
-                  <Link
-                    href="/journal"
-                    className="mt-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-blue-200 transition hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    + Create Journal
-                  </Link>
-                )}
-
+                <p className="state-text">
+                  Please wait while transactions are loaded.
+                </p>
               </div>
             )}
 
-          {/* =====================================================
-              TABLE
-          ====================================================== */}
+            {!loading && error && (
+              <div className="error">
+                <p className="error-title">
+                  Unable to load transactions
+                </p>
+
+                <p className="error-text">{error}</p>
+              </div>
+            )}
+
+            {!loading &&
+              !error &&
+              filteredJournals.length === 0 && (
+                <div className="state">
+                  <div className="state-icon">
+                    {search || typeFilter !== "ALL" ? "🔍" : "📒"}
+                  </div>
+
+                  <p className="state-title">
+                    {search || typeFilter !== "ALL"
+                      ? "No Transactions Found"
+                      : "No Transactions Yet"}
+                  </p>
+
+                  <p className="state-text">
+                    {search || typeFilter !== "ALL"
+                      ? "No voucher, type, ledger or narration matches your filter."
+                      : "Create a Journal Voucher to start recording transactions."}
+                  </p>
+
+                  {search || typeFilter !== "ALL" ? (
+                    <button
+                      className="clear-btn"
+                      onClick={() => {
+                        setSearch("");
+                        setTypeFilter("ALL");
+                      }}
+                    >
+                      Clear Filters
+                    </button>
+                  ) : (
+                    <Link href="/journal" className="new-btn">
+                      + Create Journal
+                    </Link>
+                  )}
+                </div>
+              )}
+
+            {!loading &&
+              !error &&
+              filteredJournals.length > 0 && (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Voucher No</th>
+                        <th>Type</th>
+                        <th>Particulars</th>
+                        <th className="amount">Debit</th>
+                        <th className="amount">Credit</th>
+                        <th className="action">Action</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredJournals.map((journal, index) => {
+                        const type = String(
+                          journal.voucher_type || "JOURNAL"
+                        ).toUpperCase();
+
+                        return (
+                          <tr key={journal.id}>
+                            <td>
+                              <div className="number">
+                                {index + 1}
+                              </div>
+                            </td>
+
+                            <td>
+                              <div className="date">
+                                {formatDate(journal.voucher_date)}
+                              </div>
+
+                              <div className="date-note">
+                                Voucher Date
+                              </div>
+                            </td>
+
+                            <td>
+                              <span className="voucher">
+                                {journal.voucher_number || "-"}
+                              </span>
+                            </td>
+
+                            <td>
+                              <span className={`type ${typeClass(type)}`}>
+                                {type}
+                              </span>
+                            </td>
+
+                            <td className="particulars">
+                              {(journal.entries || []).map((entry) => (
+                                <div
+                                  className="ledger"
+                                  key={entry.id}
+                                >
+                                  <span className="dot" />
+                                  {entry.ledger_name || "-"}
+                                </div>
+                              ))}
+
+                              {journal.narration && (
+                                <div className="narration">
+                                  <div className="narration-label">
+                                    Narration
+                                  </div>
+
+                                  <div className="narration-text">
+                                    {journal.narration}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="amount">
+                              {(journal.entries || []).map((entry) => (
+                                <div
+                                  className="amount-value"
+                                  key={entry.id}
+                                >
+                                  {Number(entry.debit || 0) > 0
+                                    ? `₹ ${formatAmount(entry.debit)}`
+                                    : (
+                                      <span className="dash">—</span>
+                                    )}
+                                </div>
+                              ))}
+                            </td>
+
+                            <td className="amount">
+                              {(journal.entries || []).map((entry) => (
+                                <div
+                                  className="amount-value credit-value"
+                                  key={entry.id}
+                                >
+                                  {Number(entry.credit || 0) > 0
+                                    ? `₹ ${formatAmount(entry.credit)}`
+                                    : (
+                                      <span className="dash">—</span>
+                                    )}
+                                </div>
+                              ))}
+                            </td>
+
+                            <td className="action">
+                              <button
+                                className="view"
+                                onClick={() =>
+                                  router.push(
+                                    `/journal/${journal.id}`
+                                  )
+                                }
+                              >
+                                View →
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+          </div>
+
           {!loading &&
             !error &&
             filteredJournals.length > 0 && (
-              <div className="overflow-x-auto">
+              <div className="footer">
+                <span>
+                  Showing <strong>{filteredJournals.length}</strong> of{" "}
+                  <strong>{journals.length}</strong> vouchers
+                </span>
 
-                <table className="w-full min-w-[1050px] border-collapse">
-
-                  {/* Table Header */}
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-
-                      <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        #
-                      </th>
-
-                      <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Date
-                      </th>
-
-                      <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Voucher No
-                      </th>
-
-                      <th className="px-5 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Particulars
-                      </th>
-
-                      <th className="px-5 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-blue-600">
-                        Debit
-                      </th>
-
-                      <th className="px-5 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-purple-600">
-                        Credit
-                      </th>
-
-                      <th className="px-5 py-4 text-center text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Action
-                      </th>
-
-                    </tr>
-                  </thead>
-
-                  {/* Table Body */}
-                  <tbody className="divide-y divide-slate-100">
-
-                    {filteredJournals.map((journal, index) => (
-
-                      <tr
-                        key={journal.id}
-                        className="group transition duration-150 hover:bg-blue-50/40"
-                      >
-
-                        {/* # */}
-                        <td className="px-5 py-5 align-top">
-
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600">
-                            {index + 1}
-                          </div>
-
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-5 py-5 align-top">
-
-                          <div className="text-sm font-semibold text-slate-700">
-                            {formatDate(journal.voucher_date)}
-                          </div>
-
-                          <div className="mt-1 text-[11px] text-slate-400">
-                            Voucher date
-                          </div>
-
-                        </td>
-
-                        {/* Voucher Number */}
-                        <td className="px-5 py-5 align-top">
-
-                          <span className="inline-flex rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700">
-                            {journal.voucher_number || "-"}
-                          </span>
-
-                        </td>
-
-                        {/* Particulars */}
-                        <td className="max-w-[360px] px-5 py-5 align-top">
-
-                          <div className="space-y-2">
-
-                            {journal.entries?.map((entry) => (
-
-                              <div
-                                key={entry.id}
-                                className="flex items-center gap-2"
-                              >
-
-                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
-
-                                <span className="text-sm font-medium text-slate-700">
-                                  {entry.ledger_name || "-"}
-                                </span>
-
-                              </div>
-
-                            ))}
-
-                            {journal.narration && (
-                              <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2">
-
-                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                  Narration
-                                </div>
-
-                                <div className="mt-1 text-xs italic text-slate-500">
-                                  {journal.narration}
-                                </div>
-
-                              </div>
-                            )}
-
-                          </div>
-
-                        </td>
-
-                        {/* Debit */}
-                        <td className="px-5 py-5 text-right align-top">
-
-                          <div className="space-y-2">
-
-                            {journal.entries?.map((entry) => (
-
-                              <div
-                                key={entry.id}
-                                className="text-sm font-semibold text-blue-700"
-                              >
-                                {Number(entry.debit || 0) > 0
-                                  ? `₹ ${formatAmount(entry.debit)}`
-                                  : "—"}
-                              </div>
-
-                            ))}
-
-                          </div>
-
-                        </td>
-
-                        {/* Credit */}
-                        <td className="px-5 py-5 text-right align-top">
-
-                          <div className="space-y-2">
-
-                            {journal.entries?.map((entry) => (
-
-                              <div
-                                key={entry.id}
-                                className="text-sm font-semibold text-purple-700"
-                              >
-                                {Number(entry.credit || 0) > 0
-                                  ? `₹ ${formatAmount(entry.credit)}`
-                                  : "—"}
-                              </div>
-
-                            ))}
-
-                          </div>
-
-                        </td>
-
-                        {/* Action */}
-                        <td className="px-5 py-5 text-center align-top">
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              router.push(
-                                `/journal/${journal.id}`
-                              )
-                            }
-                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:shadow"
-                          >
-                            View
-
-                            <span className="text-base">
-                              →
-                            </span>
-
-                          </button>
-
-                        </td>
-
-                      </tr>
-
-                    ))}
-
-                  </tbody>
-
-                </table>
-
+                <span>
+                  Day Book • Accounting Transactions
+                </span>
               </div>
             )}
-
         </div>
-
-        {/* =====================================================
-            FOOTER INFO
-        ====================================================== */}
-        {!loading &&
-          !error &&
-          filteredJournals.length > 0 && (
-
-            <div className="flex flex-col gap-2 px-1 py-4 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-
-              <p>
-                Showing{" "}
-                <span className="font-semibold text-slate-600">
-                  {filteredJournals.length}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-slate-600">
-                  {journals.length}
-                </span>{" "}
-                vouchers
-              </p>
-
-              <p className="font-medium">
-                Day Book • Journal Transactions
-              </p>
-
-            </div>
-          )}
-
       </div>
-    </div>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import journalReducer from "./slices/journalSlice";
 import profitLossReducer from "./slices/profitLossSlice";
 import stockReducer from "./slices/stockSlice";
 import salesReducer from "./slices/salesSlice";
+import purchaseReducer from "./slices/purchaseSlice";
 import { chartOfAccountsApi } from "./api/chartOfAccountsApi";
 
 
@@ -17,6 +18,7 @@ const store = configureStore({
     profitLoss: profitLossReducer,
     stock: stockReducer,
     sales: salesReducer,
+    purchase: purchaseReducer,
 
     [chartOfAccountsApi.reducerPath]: chartOfAccountsApi.reducer,
   },

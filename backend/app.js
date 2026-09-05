@@ -10,6 +10,7 @@ const profitLossRoutes =require("./routes/profitLossRoutes");
 const trialBalanceRoutes =require("./routes/trialBalanceRoutes");
 const stockRoutes = require("./routes/stockRoutes");
 const salesRoutes = require("./routes/salesRoutes");
+const purchaseRoutes = require("./routes/purchaseRoutes");
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/profitloss",profitLossRoutes);
 app.use("/api/trialbalance",trialBalanceRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/sales", salesRoutes);
+app.use("/api/purchases", purchaseRoutes);
 
 
 app.use((req, res) => {

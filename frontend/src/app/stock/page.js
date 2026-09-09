@@ -206,7 +206,6 @@ export default function StockPage() {
                     <th>Purchase Rate</th>
                     <th>Sales Rate</th>
                     <th>Reorder</th>
-                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -257,12 +256,6 @@ export default function StockPage() {
 
                       <td>
                         {Number(stock.reorder_level || 0).toFixed(3)}
-                      </td>
-
-                      <td>
-                        <span className={stock.is_active ? "status active" : "status inactive"}>
-                          {stock.is_active ? "Active" : "Inactive"}
-                        </span>
                       </td>
 
                       <td>

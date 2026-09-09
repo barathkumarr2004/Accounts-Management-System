@@ -5,11 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { createPurchase } from "../../store/slices/purchaseSlice";
 import { fetchStocks } from "../../store/slices/stockSlice";
 
-const emptyItem = {
-  stockId: "",
-  quantity: "",
-  rate: "",
-};
+const emptyItem = { stockId: "", quantity: "", rate: "" };
 
 export default function PurchasePage() {
   const dispatch = useDispatch();
@@ -26,15 +22,11 @@ export default function PurchasePage() {
 
   const [ledgers, setLedgers] = useState([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
-
   const [voucherDate, setVoucherDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-
-  const [supplierLedgerId, setSupplierLedgerId] =
-    useState("");
-  const [purchaseLedgerId, setPurchaseLedgerId] =
-    useState("");
+  const [supplierLedgerId, setSupplierLedgerId] = useState("");
+  const [purchaseLedgerId, setPurchaseLedgerId] = useState("");
   const [narration, setNarration] = useState("");
   const [item, setItem] = useState(emptyItem);
   const [message, setMessage] = useState("");
@@ -80,7 +72,6 @@ export default function PurchasePage() {
   const amount = useMemo(() => {
     const quantity = Number(item.quantity || 0);
     const rate = Number(item.rate || 0);
-
     return quantity * rate;
   }, [item.quantity, item.rate]);
 
@@ -164,9 +155,7 @@ export default function PurchasePage() {
 
     if (createPurchase.fulfilled.match(result)) {
       setMessage(
-        `Purchase voucher ${
-          result.payload.voucher_number
-        } created successfully`
+        `Purchase voucher ${result.payload.voucher_number} created successfully`
       );
 
       setItem(emptyItem);
@@ -184,390 +173,390 @@ export default function PurchasePage() {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>Purchase Voucher</h1>
-          <p style={styles.subtitle}>
-            Create purchase and automatically increase stock
-          </p>
-        </div>
+    <div className="purchase-page">
+      <div className="purchase-bg"></div>
 
-        {purchase?.voucher_number && (
-          <div style={styles.voucherBadge}>
-            {purchase.voucher_number}
+      <main className="purchase-container">
+
+        <header className="purchase-header">
+          <div className="header-content">
+            <div className="purchase-icon">PV</div>
+
+            <div>
+              <h1>Purchase Voucher</h1>
+              <p>
+                Create purchase voucher and automatically
+                increase stock
+              </p>
+            </div>
+          </div>
+
+          {purchase?.voucher_number && (
+            <div className="voucher-badge">
+              {purchase.voucher_number}
+            </div>
+          )}
+        </header>
+
+        {(message || purchaseError) && (
+          <div
+            className={
+              purchaseError
+                ? "message error-message"
+                : "message success-message"
+            }
+          >
+            <span className="message-icon">
+              {purchaseError ? "!" : "✓"}
+            </span>
+
+            <span>{purchaseError || message}</span>
           </div>
         )}
-      </div>
 
-      {(message || purchaseError) && (
-        <div
-          style={
-            purchaseError ? styles.error : styles.success
-          }
-        >
-          {purchaseError || message}
-        </div>
-      )}
+        <form onSubmit={handleSubmit}>
 
-      <form onSubmit={handleSubmit}>
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            Voucher Details
-          </h2>
+          <section className="section-card">
 
-          <div style={styles.grid}>
-            <div style={styles.field}>
-              <label style={styles.label}>Voucher Date</label>
-              <input
-                type="date"
-                value={voucherDate}
-                onChange={(e) =>
-                  setVoucherDate(e.target.value)
-                }
-                style={styles.input}
-              />
+            <div className="section-heading">
+              <div className="section-number">01</div>
+
+              <div>
+                <h2>Voucher Details</h2>
+                <p>
+                  Enter basic purchase transaction details
+                </p>
+              </div>
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Supplier Ledger
-              </label>
+            <div className="voucher-grid">
 
-              <select
-                value={supplierLedgerId}
-                onChange={(e) =>
-                  setSupplierLedgerId(e.target.value)
-                }
-                style={styles.input}
-                disabled={ledgerLoading}
-              >
-                <option value="">Select Supplier</option>
+              <div className="field">
+                <label>Voucher Date</label>
 
-                {ledgers.map((ledger) => (
-                  <option key={ledger.id} value={ledger.id}>
-                    {ledger.name}
+                <input
+                  type="date"
+                  value={voucherDate}
+                  onChange={(e) =>
+                    setVoucherDate(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Supplier Ledger</label>
+
+                <select
+                  value={supplierLedgerId}
+                  onChange={(e) =>
+                    setSupplierLedgerId(e.target.value)
+                  }
+                  disabled={ledgerLoading}
+                >
+                  <option value="">
+                    Select Supplier
                   </option>
-                ))}
-              </select>
-            </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Purchase Ledger
-              </label>
-
-              <select
-                value={purchaseLedgerId}
-                onChange={(e) =>
-                  setPurchaseLedgerId(e.target.value)
-                }
-                style={styles.input}
-                disabled={ledgerLoading}
-              >
-                <option value="">
-                  Select Purchase Ledger
-                </option>
-
-                {ledgers.map((ledger) => (
-                  <option key={ledger.id} value={ledger.id}>
-                    {ledger.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>Narration</label>
-              <input
-                type="text"
-                value={narration}
-                onChange={(e) =>
-                  setNarration(e.target.value)
-                }
-                placeholder="Purchase narration"
-                style={styles.input}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>Stock Item</h2>
-
-          <div style={styles.itemGrid}>
-            <div style={styles.field}>
-              <label style={styles.label}>Item</label>
-
-              <select
-                name="stockId"
-                value={item.stockId}
-                onChange={handleItemChange}
-                style={styles.input}
-                disabled={stockLoading}
-              >
-                <option value="">Select Item</option>
-
-                {stocks
-                  .filter(
-                    (stock) =>
-                      Number(stock.is_active) === 1
-                  )
-                  .map((stock) => (
+                  {ledgers.map((ledger) => (
                     <option
-                      key={stock.id}
-                      value={stock.id}
+                      key={ledger.id}
+                      value={ledger.id}
                     >
-                      {stock.item_code} - {stock.item_name}
+                      {ledger.name}
                     </option>
                   ))}
-              </select>
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Purchase Ledger</label>
+
+                <select
+                  value={purchaseLedgerId}
+                  onChange={(e) =>
+                    setPurchaseLedgerId(e.target.value)
+                  }
+                  disabled={ledgerLoading}
+                >
+                  <option value="">
+                    Select Purchase Ledger
+                  </option>
+
+                  {ledgers.map((ledger) => (
+                    <option
+                      key={ledger.id}
+                      value={ledger.id}
+                    >
+                      {ledger.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Narration</label>
+
+                <input
+                  type="text"
+                  value={narration}
+                  onChange={(e) =>
+                    setNarration(e.target.value)
+                  }
+                  placeholder="Purchase narration"
+                />
+              </div>
+
+            </div>
+          </section>
+
+          <section className="section-card">
+
+            <div className="section-heading">
+              <div className="section-number">02</div>
+
+              <div>
+                <h2>Stock Item</h2>
+                <p>
+                  Select item and enter purchase quantity
+                </p>
+              </div>
             </div>
 
-            <div style={styles.stockInfo}>
-              <span style={styles.infoLabel}>Unit</span>
-              <strong>{selectedStock?.unit || "-"}</strong>
+            <div className="stock-grid">
+
+              <div className="field item-field">
+                <label>Stock Item</label>
+
+                <select
+                  name="stockId"
+                  value={item.stockId}
+                  onChange={handleItemChange}
+                  disabled={stockLoading}
+                >
+                  <option value="">
+                    Select Item
+                  </option>
+
+                  {stocks
+                    .filter(
+                      (stock) =>
+                        Number(stock.is_active) === 1
+                    )
+                    .map((stock) => (
+                      <option
+                        key={stock.id}
+                        value={stock.id}
+                      >
+                        {stock.item_code} -{" "}
+                        {stock.item_name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="info-box">
+                <span>Unit</span>
+
+                <strong>
+                  {selectedStock?.unit || "-"}
+                </strong>
+              </div>
+
+              <div className="info-box current-box">
+                <span>Current Stock</span>
+
+                <strong>
+                  {selectedStock?.current_qty ?? "-"}
+                </strong>
+              </div>
+
+              <div className="field">
+                <label>Quantity</label>
+
+                <input
+                  type="number"
+                  name="quantity"
+                  min="0"
+                  step="0.001"
+                  value={item.quantity}
+                  onChange={handleItemChange}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="field">
+                <label>Purchase Rate</label>
+
+                <input
+                  type="number"
+                  name="rate"
+                  min="0"
+                  step="0.01"
+                  value={item.rate}
+                  onChange={handleItemChange}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="amount-box">
+                <span>Amount</span>
+
+                <strong>
+                  ₹ {amount.toFixed(2)}
+                </strong>
+              </div>
+
             </div>
 
-            <div style={styles.stockInfo}>
-              <span style={styles.infoLabel}>
-                Current Stock
+          </section>
+
+          <section className="total-card">
+
+            <div>
+              <span>Total Purchase Amount</span>
+
+              <small>
+                Quantity × Purchase Rate
+              </small>
+            </div>
+
+            <strong>
+              ₹ {amount.toFixed(2)}
+            </strong>
+
+          </section>
+
+          <div className="action-area">
+
+            <button
+              type="submit"
+              className="save-button"
+              disabled={purchaseLoading}
+            >
+              <span>
+                {purchaseLoading ? "..." : "✓"}
               </span>
-              <strong>
-                {selectedStock?.current_qty ?? "-"}
-              </strong>
-            </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>Quantity</label>
+              {purchaseLoading
+                ? "Saving Purchase..."
+                : "Save Purchase"}
+            </button>
 
-              <input
-                type="number"
-                name="quantity"
-                min="0"
-                step="0.001"
-                value={item.quantity}
-                onChange={handleItemChange}
-                style={styles.input}
-                placeholder="0"
-              />
-            </div>
+            <button
+              type="button"
+              className="reset-button"
+              onClick={handleReset}
+            >
+              Reset
+            </button>
 
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Purchase Rate
-              </label>
-
-              <input
-                type="number"
-                name="rate"
-                min="0"
-                step="0.01"
-                value={item.rate}
-                onChange={handleItemChange}
-                style={styles.input}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div style={styles.amountBox}>
-              <span style={styles.infoLabel}>Amount</span>
-              <strong>₹{amount.toFixed(2)}</strong>
-            </div>
           </div>
-        </div>
 
-        <div style={styles.totalCard}>
-          <span>Total Purchase Amount</span>
-          <strong>₹{amount.toFixed(2)}</strong>
-        </div>
+        </form>
 
-        <div style={styles.actions}>
-          <button
-            type="submit"
-            style={styles.saveButton}
-            disabled={purchaseLoading}
-          >
-            {purchaseLoading ? "Saving..." : "Save Purchase"}
-          </button>
+      </main>
 
-          <button
-            type="button"
-            style={styles.resetButton}
-            onClick={handleReset}
-          >
-            Reset
-          </button>
-        </div>
-      </form>
+      <style>{`
+
+        * { box-sizing: border-box; }
+
+        .purchase-page { min-height: 100vh; padding: 24px; background: #07111f; color: #e8f1f7; font-family: Arial, sans-serif; position: relative; }
+
+        .purchase-bg { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(700px at 10% 0%, rgba(35, 126, 184, 0.12), transparent), radial-gradient(600px at 90% 100%, rgba(245, 158, 11, 0.06), transparent); }
+
+        .purchase-container { position: relative; max-width: 1180px; width: 100%; margin: 0 auto; }
+
+        .purchase-header { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; margin-bottom: 18px; background: linear-gradient(100deg, #0c1c31, #183d82); border: 1px solid #3c83b7; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+
+        .header-content { display: flex; align-items: center; gap: 14px; }
+
+        .purchase-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #f59e0b; color: #1c1303; border-radius: 8px; font-size: 16px; font-weight: 900; box-shadow: 0 5px 18px rgba(245, 158, 11, 0.18); }
+
+        .purchase-header h1 { margin: 0; color: #f7fbff; font-size: 25px; font-weight: 800; }
+
+        .purchase-header p { margin: 5px 0 0; color: #a9d0e7; font-size: 12px; }
+
+        .voucher-badge { padding: 10px 16px; background: #30220a; border: 1px solid #d18b0a; border-radius: 6px; color: #ffc44d; font-family: Consolas, monospace; font-size: 13px; font-weight: 900; }
+
+        .message { display: flex; align-items: center; gap: 10px; padding: 12px 15px; margin-bottom: 18px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+
+        .success-message { background: #0a3028; border: 1px solid #19826b; color: #63ddc0; }
+
+        .error-message { background: #39171c; border: 1px solid #8d333e; color: #ff919b; }
+
+        .message-icon { width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); font-size: 11px; }
+
+        .section-card { padding: 20px; margin-bottom: 18px; background: #0d1c35; border: 1px solid #285a82; border-radius: 10px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
+
+        .section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+
+        .section-number { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #123d63; border: 1px solid #267ba7; border-radius: 6px; color: #53c8ee; font-family: Consolas, monospace; font-size: 10px; font-weight: 900; }
+
+        .section-heading h2 { margin: 0; color: #a8d2ff; font-size: 20px; font-weight: 700; }
+
+        .section-heading p { margin: 3px 0 0; color: #668199; font-size: 10px; }
+
+        .voucher-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+        .stock-grid { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.9fr 0.9fr 1.1fr; gap: 12px; align-items: end; }
+
+        .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+        .field label, .info-box span, .amount-box span { color: #86a6c0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+
+        .field input, .field select { width: 100%; height: 43px; padding: 0 12px; background: #081329; color: #e7f0f7; border: 1px solid #304964; border-radius: 5px; outline: none; font-size: 12px; font-family: Arial, sans-serif; }
+
+        .field input::placeholder { color: #40556a; }
+
+        .field input:focus, .field select:focus { border-color: #29a9d4; box-shadow: 0 0 0 2px rgba(41, 169, 212, 0.08); }
+
+        .field select option { background: #0b172a; color: white; }
+
+        .field input:disabled, .field select:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .info-box, .amount-box { min-width: 0; height: 69px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 10px 12px; background: #09172a; border: 1px solid #263e55; border-radius: 5px; }
+
+        .info-box strong { color: #d9e7f1; font-family: Consolas, monospace; font-size: 14px; }
+
+        .current-box { border-color: #236a79; background: #09202b; }
+
+        .current-box strong { color: #45d1c3; }
+
+        .amount-box { border-color: #c27c08; background: #2a210e; }
+
+        .amount-box strong { color: #ffc044; font-family: Consolas, monospace; font-size: 16px; }
+
+        .total-card { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 20px; margin-bottom: 18px; background: linear-gradient(100deg, #123474, #1c438f); border: 1px solid #4b8bc0; border-radius: 8px; }
+
+        .total-card span { display: block; color: #f0f7ff; font-size: 15px; font-weight: 700; }
+
+        .total-card small { display: block; margin-top: 4px; color: #86acd0; font-size: 9px; }
+
+        .total-card strong { color: #ffffff; font-family: Consolas, monospace; font-size: 19px; font-weight: 900; }
+
+        .action-area { display: flex; align-items: center; gap: 9px; }
+
+        .save-button, .reset-button { min-height: 43px; padding: 0 20px; border-radius: 6px; border: none; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.15s ease; }
+
+        .save-button { display: flex; align-items: center; gap: 8px; background: #f59e0b; color: #211403; }
+
+        .save-button:hover { background: #ffb51b; transform: translateY(-1px); }
+
+        .save-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .save-button span { font-size: 12px; font-weight: 900; }
+
+        .reset-button { background: #35475e; color: #d6e1eb; }
+
+        .reset-button:hover { background: #465c75; }
+
+        @media (max-width: 1050px) { .voucher-grid { grid-template-columns: repeat(2, 1fr); } .stock-grid { grid-template-columns: repeat(3, 1fr); } .item-field { grid-column: span 3; } }
+
+        @media (max-width: 700px) { .purchase-page { padding: 14px; } .purchase-header { align-items: flex-start; flex-direction: column; } .voucher-badge { width: 100%; } .voucher-grid, .stock-grid { grid-template-columns: 1fr; } .item-field { grid-column: auto; } .section-card { padding: 15px; } .total-card { align-items: flex-start; flex-direction: column; } .total-card strong { font-size: 17px; } .action-area { width: 100%; } .save-button, .reset-button { flex: 1; } }
+
+        @media (max-width: 450px) { .purchase-page { padding: 10px; } .purchase-header { padding: 15px; } .purchase-header h1 { font-size: 20px; } .purchase-icon { width: 44px; height: 44px; } .section-heading h2 { font-size: 17px; } }
+
+      `}</style>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "#0b122e",
-    color: "white",
-    padding: "20px",
-    fontFamily: "Arial",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background:
-      "linear-gradient(90deg, #0b122e, #1e3a8a)",
-    border: "1px solid #60a5fa",
-    borderRadius: "10px",
-    padding: "20px",
-    marginBottom: "20px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "28px",
-  },
-
-  subtitle: {
-    margin: "6px 0 0",
-    color: "#bfdbfe",
-  },
-
-  voucherBadge: {
-    background: "#f59e0b",
-    padding: "10px 16px",
-    borderRadius: "6px",
-    fontWeight: "bold",
-  },
-
-  success: {
-    background: "#14532d",
-    border: "1px solid #22c55e",
-    padding: "12px",
-    borderRadius: "6px",
-    marginBottom: "15px",
-  },
-
-  error: {
-    background: "#7f1d1d",
-    border: "1px solid #ef4444",
-    padding: "12px",
-    borderRadius: "6px",
-    marginBottom: "15px",
-  },
-
-  card: {
-    background: "#131d42",
-    border: "1px solid #60a5fa",
-    borderRadius: "10px",
-    padding: "20px",
-    marginBottom: "20px",
-  },
-
-  sectionTitle: {
-    marginTop: 0,
-    color: "#93c5fd",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "15px",
-  },
-
-  itemGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "2fr 1fr 1fr 1fr 1fr 1fr",
-    gap: "15px",
-    alignItems: "end",
-  },
-
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-
-  label: {
-    color: "#bfdbfe",
-    fontSize: "14px",
-  },
-
-  input: {
-    width: "100%",
-    boxSizing: "border-box",
-    background: "#0b122e",
-    color: "white",
-    border: "1px solid #475569",
-    borderRadius: "5px",
-    padding: "10px",
-    outline: "none",
-  },
-
-  stockInfo: {
-    background: "#0b122e",
-    border: "1px solid #334155",
-    borderRadius: "5px",
-    padding: "10px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    minHeight: "42px",
-  },
-
-  infoLabel: {
-    color: "#94a3b8",
-    fontSize: "12px",
-  },
-
-  amountBox: {
-    background: "#172554",
-    border: "1px solid #f59e0b",
-    borderRadius: "5px",
-    padding: "10px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    minHeight: "42px",
-  },
-
-  totalCard: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background: "#1e3a8a",
-    border: "1px solid #60a5fa",
-    borderRadius: "8px",
-    padding: "16px 20px",
-    fontSize: "18px",
-    marginBottom: "20px",
-  },
-
-  actions: {
-    display: "flex",
-    gap: "10px",
-  },
-
-  saveButton: {
-    background: "#f59e0b",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    padding: "11px 22px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  resetButton: {
-    background: "#475569",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    padding: "11px 22px",
-    cursor: "pointer",
-  },
-};

@@ -2,25 +2,20 @@
 
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
-import {clearPayment,createPayment} from "../../store/slices/paymentSlice";
+import { clearPayment, createPayment } from "../../store/slices/paymentSlice";
 
 export default function PaymentPage() {
   const dispatch = useDispatch();
 
-  const {
-    payment,
-    loading,
-    error,
-  } = useSelector((state) => state.payment);
+  const { payment, loading, error } = useSelector(
+    (state) => state.payment
+  );
 
   const [ledgers, setLedgers] = useState([]);
   const [loadingLedgers, setLoadingLedgers] = useState(true);
 
   const [form, setForm] = useState({
-    voucherDate: new Date()
-      .toISOString()
-      .split("T")[0],
+    voucherDate: new Date().toISOString().split("T")[0],
     expenseLedgerId: "",
     bankLedgerId: "",
     amount: "",
@@ -35,20 +30,14 @@ export default function PaymentPage() {
     try {
       setLoadingLedgers(true);
 
-      const response = await fetch(
-        "http://localhost:5000/api/ledgers"
-      );
-
+      const response = await fetch("http://localhost:5000/api/ledgers");
       const result = await response.json();
 
       if (result.success) {
         setLedgers(result.data || []);
       }
     } catch (error) {
-      console.error(
-        "Failed to fetch ledgers:",
-        error
-      );
+      console.error("Failed to fetch ledgers:", error);
     } finally {
       setLoadingLedgers(false);
     }
@@ -66,35 +55,17 @@ export default function PaymentPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.voucherDate) {
-      return;
-    }
-
-    if (!form.expenseLedgerId) {
-      return;
-    }
-
-    if (!form.bankLedgerId) {
-      return;
-    }
-
-    if (
-      !form.amount ||
-      Number(form.amount) <= 0
-    ) {
-      return;
-    }
+    if (!form.voucherDate) return;
+    if (!form.expenseLedgerId) return;
+    if (!form.bankLedgerId) return;
+    if (!form.amount || Number(form.amount) <= 0) return;
 
     await dispatch(
       createPayment({
         voucherDate: form.voucherDate,
         narration: form.narration,
-        expenseLedgerId: Number(
-          form.expenseLedgerId
-        ),
-        bankLedgerId: Number(
-          form.bankLedgerId
-        ),
+        expenseLedgerId: Number(form.expenseLedgerId),
+        bankLedgerId: Number(form.bankLedgerId),
         amount: Number(form.amount),
       })
     );
@@ -102,9 +73,7 @@ export default function PaymentPage() {
 
   const handleReset = () => {
     setForm({
-      voucherDate: new Date()
-        .toISOString()
-        .split("T")[0],
+      voucherDate: new Date().toISOString().split("T")[0],
       expenseLedgerId: "",
       bankLedgerId: "",
       amount: "",
@@ -117,9 +86,7 @@ export default function PaymentPage() {
   useEffect(() => {
     if (payment?.success) {
       setForm({
-        voucherDate: new Date()
-          .toISOString()
-          .split("T")[0],
+        voucherDate: new Date().toISOString().split("T")[0],
         expenseLedgerId: "",
         bankLedgerId: "",
         amount: "",
@@ -135,50 +102,77 @@ export default function PaymentPage() {
   }, [payment, dispatch]);
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>
-            Payment Voucher
-          </h1>
+    <div className="payment-page">
+      <div className="payment-container">
 
-          <p style={styles.subtitle}>
-            Record payments made to parties or
-            expenses
-          </p>
-        </div>
+        <header className="payment-header">
+          <div className="header-content">
+            <div className="payment-icon">PM</div>
+
+            <div>
+              <h1>Payment Voucher</h1>
+              <p>Record payments made to parties or expenses</p>
+            </div>
+          </div>
+
+          {payment?.data?.voucher_number && (
+            <div className="voucher-badge">
+              {payment.data.voucher_number}
+            </div>
+          )}
+        </header>
+
+        {error && (
+          <div className="message error-message">
+            <span className="message-icon">!</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {payment?.success && (
+          <div className="message success-message">
+            <span className="message-icon">✓</span>
+            <span>
+              Payment Voucher{" "}
+              <strong>{payment.data?.voucher_number}</strong>{" "}
+              created successfully.
+            </span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>
-              Voucher Details
-            </h2>
 
-            <div style={styles.grid}>
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  Voucher Date
-                </label>
+          <section className="section-card">
+
+            <div className="section-heading">
+              <div className="section-number">01</div>
+
+              <div>
+                <h2>Voucher Details</h2>
+                <p>Enter payment transaction details</p>
+              </div>
+            </div>
+
+            <div className="voucher-grid">
+
+              <div className="field">
+                <label>Voucher Date</label>
 
                 <input
                   type="date"
                   name="voucherDate"
                   value={form.voucherDate}
                   onChange={handleChange}
-                  style={styles.input}
                 />
               </div>
 
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  Expense / Party Ledger
-                </label>
+              <div className="field">
+                <label>Expense / Party Ledger</label>
 
                 <select
                   name="expenseLedgerId"
                   value={form.expenseLedgerId}
                   onChange={handleChange}
-                  style={styles.input}
                   disabled={loadingLedgers}
                 >
                   <option value="">
@@ -186,26 +180,20 @@ export default function PaymentPage() {
                   </option>
 
                   {ledgers.map((ledger) => (
-                    <option
-                      key={ledger.id}
-                      value={ledger.id}
-                    >
+                    <option key={ledger.id} value={ledger.id}>
                       {ledger.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  Bank / Cash Ledger
-                </label>
+              <div className="field">
+                <label>Bank / Cash Ledger</label>
 
                 <select
                   name="bankLedgerId"
                   value={form.bankLedgerId}
                   onChange={handleChange}
-                  style={styles.input}
                   disabled={loadingLedgers}
                 >
                   <option value="">
@@ -213,20 +201,15 @@ export default function PaymentPage() {
                   </option>
 
                   {ledgers.map((ledger) => (
-                    <option
-                      key={ledger.id}
-                      value={ledger.id}
-                    >
+                    <option key={ledger.id} value={ledger.id}>
                       {ledger.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  Amount
-                </label>
+              <div className="field">
+                <label>Amount</label>
 
                 <input
                   type="number"
@@ -236,19 +219,14 @@ export default function PaymentPage() {
                   min="0"
                   step="0.01"
                   placeholder="Enter amount"
-                  style={styles.input}
                 />
               </div>
 
-              <div
-                style={{
-                  ...styles.field,
-                  gridColumn: "1 / -1",
-                }}
-              >
-                <label style={styles.label}>
-                  Narration
-                </label>
+            </div>
+
+            <div className="narration-field">
+              <div className="field">
+                <label>Narration</label>
 
                 <input
                   type="text"
@@ -256,198 +234,143 @@ export default function PaymentPage() {
                   value={form.narration}
                   onChange={handleChange}
                   placeholder="Payment narration"
-                  style={styles.input}
                 />
               </div>
             </div>
-          </div>
 
-          <div style={styles.amountCard}>
-            <span style={styles.amountLabel}>
-              Payment Amount
-            </span>
+          </section>
 
-            <strong style={styles.amountValue}>
-              ₹{Number(form.amount || 0).toFixed(2)}
+          <section className="amount-card">
+
+            <div className="amount-content">
+              <div className="amount-icon">₹</div>
+
+              <div>
+                <span>Payment Amount</span>
+                <small>Amount paid to party or expense</small>
+              </div>
+            </div>
+
+            <strong>
+              ₹ {Number(form.amount || 0).toFixed(2)}
             </strong>
-          </div>
 
-          {error && (
-            <div style={styles.error}>
-              {error}
-            </div>
-          )}
+          </section>
 
-          {payment?.success && (
-            <div style={styles.success}>
-              Payment Voucher{" "}
-              <strong>
-                {payment.data?.voucher_number}
-              </strong>{" "}
-              created successfully.
-            </div>
-          )}
+          <div className="action-area">
 
-          <div style={styles.buttons}>
             <button
               type="submit"
+              className="save-button"
               disabled={loading}
-              style={styles.saveButton}
             >
-              {loading
-                ? "Saving..."
-                : "Save Payment"}
+              <span>{loading ? "..." : "✓"}</span>
+              {loading ? "Saving Payment..." : "Save Payment"}
             </button>
 
             <button
               type="button"
+              className="reset-button"
               onClick={handleReset}
-              style={styles.resetButton}
             >
               Reset
             </button>
+
           </div>
+
         </form>
+
       </div>
+
+      <style>{`
+
+        * { box-sizing: border-box; }
+
+        .payment-page { min-height: 100vh; padding: 24px; background: #07111f; color: #e8f1f7; font-family: Arial, sans-serif; }
+
+        .payment-container { max-width: 1180px; width: 100%; margin: 0 auto; }
+
+        .payment-header { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; margin-bottom: 18px; background: linear-gradient(100deg, #0c1c31, #183d82); border: 1px solid #3c83b7; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+
+        .header-content { display: flex; align-items: center; gap: 14px; }
+
+        .payment-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #f59e0b; color: #211403; border-radius: 8px; font-size: 14px; font-weight: 900; box-shadow: 0 5px 18px rgba(245, 158, 11, 0.18); }
+
+        .payment-header h1 { margin: 0; color: #f7fbff; font-size: 25px; font-weight: 800; }
+
+        .payment-header p { margin: 5px 0 0; color: #a9d0e7; font-size: 12px; }
+
+        .voucher-badge { padding: 10px 16px; background: #30220a; border: 1px solid #d18b0a; border-radius: 6px; color: #ffc44d; font-family: Consolas, monospace; font-size: 13px; font-weight: 900; }
+
+        .message { display: flex; align-items: center; gap: 10px; padding: 12px 15px; margin-bottom: 18px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+
+        .success-message { background: #0a3028; border: 1px solid #19826b; color: #63ddc0; }
+
+        .error-message { background: #39171c; border: 1px solid #8d333e; color: #ff919b; }
+
+        .message-icon { width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); font-size: 11px; }
+
+        .section-card { padding: 20px; margin-bottom: 18px; background: #0d1c35; border: 1px solid #285a82; border-radius: 10px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
+
+        .section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+
+        .section-number { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #123d63; border: 1px solid #267ba7; border-radius: 6px; color: #53c8ee; font-family: Consolas, monospace; font-size: 10px; font-weight: 900; }
+
+        .section-heading h2 { margin: 0; color: #a8d2ff; font-size: 20px; font-weight: 700; }
+
+        .section-heading p { margin: 3px 0 0; color: #668199; font-size: 10px; }
+
+        .voucher-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+        .narration-field { margin-top: 14px; }
+
+        .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+        .field label { color: #86a6c0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+
+        .field input, .field select { width: 100%; height: 43px; padding: 0 12px; background: #081329; color: #e7f0f7; border: 1px solid #304964; border-radius: 5px; outline: none; font-size: 12px; font-family: Arial, sans-serif; }
+
+        .field input::placeholder { color: #40556a; }
+
+        .field input:focus, .field select:focus { border-color: #29a9d4; box-shadow: 0 0 0 2px rgba(41, 169, 212, 0.08); }
+
+        .field select option { background: #0b172a; color: white; }
+
+        .field input:disabled, .field select:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .amount-card { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 20px; margin-bottom: 18px; background: linear-gradient(100deg, #123474, #1c438f); border: 1px solid #4b8bc0; border-radius: 8px; }
+
+        .amount-content { display: flex; align-items: center; gap: 12px; }
+
+        .amount-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #f59e0b; color: #211403; border-radius: 6px; font-size: 17px; font-weight: 900; }
+
+        .amount-content span { display: block; color: #f0f7ff; font-size: 15px; font-weight: 700; }
+
+        .amount-content small { display: block; margin-top: 4px; color: #86acd0; font-size: 9px; }
+
+        .amount-card > strong { color: #ffffff; font-family: Consolas, monospace; font-size: 20px; font-weight: 900; }
+
+        .action-area { display: flex; align-items: center; gap: 9px; }
+
+        .save-button, .reset-button { min-height: 43px; padding: 0 20px; border-radius: 6px; border: none; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.15s ease; }
+
+        .save-button { display: flex; align-items: center; gap: 8px; background: #f59e0b; color: #211403; }
+
+        .save-button:hover { background: #ffb51b; transform: translateY(-1px); }
+
+        .save-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .reset-button { background: #35475e; color: #d6e1eb; }
+
+        .reset-button:hover { background: #465c75; }
+
+        @media (max-width: 900px) { .voucher-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        @media (max-width: 650px) { .payment-page { padding: 14px; } .payment-header { align-items: flex-start; flex-direction: column; } .voucher-badge { width: 100%; } .voucher-grid { grid-template-columns: 1fr; } .section-card { padding: 15px; } .amount-card { align-items: flex-start; flex-direction: column; } .action-area { width: 100%; } .save-button, .reset-button { flex: 1; } }
+
+        @media (max-width: 420px) { .payment-page { padding: 10px; } .payment-header { padding: 15px; } .payment-header h1 { font-size: 20px; } .payment-icon { width: 44px; height: 44px; } .section-heading h2 { font-size: 17px; } }
+
+      `}</style>
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#0b122e",
-    color: "#fff",
-    padding: "30px",
-  },
-
-  container: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-
-  header: {
-    background:
-      "linear-gradient(135deg, #172554, #1e3a8a)",
-    border: "1px solid #60a5fa",
-    borderRadius: "10px",
-    padding: "25px",
-    marginBottom: "18px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "26px",
-    fontWeight: "600",
-  },
-
-  subtitle: {
-    margin: "8px 0 0",
-    color: "#bfdbfe",
-  },
-
-  card: {
-    background: "#131d42",
-    border: "1px solid #3b82f6",
-    borderRadius: "10px",
-    padding: "25px",
-  },
-
-  sectionTitle: {
-    margin: "0 0 20px",
-    color: "#93c5fd",
-    fontSize: "22px",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(4, minmax(0, 1fr))",
-    gap: "20px",
-  },
-
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "7px",
-  },
-
-  label: {
-    fontSize: "14px",
-    color: "#bfdbfe",
-  },
-
-  input: {
-    width: "100%",
-    boxSizing: "border-box",
-    background: "#080f2b",
-    color: "#fff",
-    border: "1px solid #475569",
-    borderRadius: "5px",
-    padding: "11px",
-    outline: "none",
-  },
-
-  amountCard: {
-    marginTop: "18px",
-    background: "#1e3a8a",
-    border: "1px solid #60a5fa",
-    borderRadius: "8px",
-    padding: "16px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  amountLabel: {
-    fontSize: "16px",
-    fontWeight: "600",
-  },
-
-  amountValue: {
-    fontSize: "20px",
-  },
-
-  buttons: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "18px",
-  },
-
-  saveButton: {
-    border: "none",
-    borderRadius: "6px",
-    padding: "12px 22px",
-    background: "#f59e0b",
-    color: "#fff",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-
-  resetButton: {
-    border: "none",
-    borderRadius: "6px",
-    padding: "12px 22px",
-    background: "#475569",
-    color: "#fff",
-    cursor: "pointer",
-  },
-
-  success: {
-    marginTop: "15px",
-    padding: "12px",
-    borderRadius: "6px",
-    background: "#14532d",
-    border: "1px solid #22c55e",
-    color: "#bbf7d0",
-  },
-
-  error: {
-    marginTop: "15px",
-    padding: "12px",
-    borderRadius: "6px",
-    background: "#450a0a",
-    border: "1px solid #ef4444",
-    color: "#fecaca",
-  },
-};

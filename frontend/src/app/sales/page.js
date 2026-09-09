@@ -2,23 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
 import { createSales } from "../../store/slices/salesSlice";
 import { fetchStocks } from "../../store/slices/stockSlice";
 
-const emptyItem = {
-  stockId: "",
-  quantity: "",
-  rate: "",
-};
+const emptyItem = { stockId: "", quantity: "", rate: "" };
 
 export default function SalesPage() {
   const dispatch = useDispatch();
 
-  const {
-    stocks,
-    loading: stockLoading,
-  } = useSelector((state) => state.stock);
+  const { stocks, loading: stockLoading } = useSelector(
+    (state) => state.stock
+  );
 
   const {
     loading: salesLoading,
@@ -28,24 +22,13 @@ export default function SalesPage() {
 
   const [ledgers, setLedgers] = useState([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
-
-  const [voucherDate, setVoucherDate] =
-    useState(
-      new Date().toISOString().split("T")[0]
-    );
-
-  const [partyLedgerId, setPartyLedgerId] =
-    useState("");
-
-  const [salesLedgerId, setSalesLedgerId] =
-    useState("");
-
-  const [narration, setNarration] =
-    useState("");
-
-  const [item, setItem] =
-    useState(emptyItem);
-
+  const [voucherDate, setVoucherDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [partyLedgerId, setPartyLedgerId] = useState("");
+  const [salesLedgerId, setSalesLedgerId] = useState("");
+  const [narration, setNarration] = useState("");
+  const [item, setItem] = useState(emptyItem);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -77,46 +60,46 @@ export default function SalesPage() {
     }
   };
 
-  const selectedStock = useMemo(() => {
-    return stocks.find(
-      (stock) =>
-        Number(stock.id) === Number(item.stockId)
-    );
-  }, [stocks, item.stockId]);
+  const selectedStock = useMemo(
+    () =>
+      stocks.find(
+        (stock) =>
+          Number(stock.id) === Number(item.stockId)
+      ),
+    [stocks, item.stockId]
+  );
 
   const amount = useMemo(() => {
     const quantity = Number(item.quantity || 0);
     const rate = Number(item.rate || 0);
-
     return quantity * rate;
   }, [item.quantity, item.rate]);
 
   const handleItemChange = (e) => {
     const { name, value } = e.target;
 
-    setItem((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
     if (name === "stockId") {
       const stock = stocks.find(
         (row) => Number(row.id) === Number(value)
       );
 
-      if (stock) {
-        setItem((prev) => ({
-          ...prev,
-          stockId: value,
-          rate: stock.sales_rate || "",
-        }));
-      }
+      setItem({
+        stockId: value,
+        quantity: "",
+        rate: stock?.sales_rate || "",
+      });
+
+      return;
     }
+
+    setItem((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setMessage("");
 
     if (!voucherDate) {
@@ -142,11 +125,8 @@ export default function SalesPage() {
     const quantity = Number(item.quantity);
     const rate = Number(item.rate);
 
-
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      setMessage(
-        "Quantity must be greater than zero"
-      );
+      setMessage("Quantity must be greater than zero");
       return;
     }
 
@@ -155,11 +135,16 @@ export default function SalesPage() {
       return;
     }
 
-    if (selectedStock && quantity > Number(selectedStock.current_qty)) {
-        setMessage(`Insufficient stock. Available: ${selectedStock.current_qty} ${selectedStock.unit || ""}`);
-        return;
+    if (
+      selectedStock &&
+      quantity > Number(selectedStock.current_qty)
+    ) {
+      setMessage(
+        `Insufficient stock. Available: ${selectedStock.current_qty} ${selectedStock.unit || ""}`
+      );
+      return;
     }
-    
+
     const salesData = {
       voucherDate,
       partyLedgerId: Number(partyLedgerId),
@@ -185,7 +170,6 @@ export default function SalesPage() {
 
       setItem(emptyItem);
       setNarration("");
-
       dispatch(fetchStocks());
     }
   };
@@ -198,439 +182,378 @@ export default function SalesPage() {
     setMessage("");
   };
 
-  const partyLedgers = ledgers;
-
-  const salesLedgers = ledgers;
-
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>
-            Sales Voucher
-          </h1>
+    <div className="sales-page">
+      <div className="sales-bg"></div>
 
-          <p style={styles.subtitle}>
-            Create sales and automatically reduce stock
-          </p>
-        </div>
+      <main className="sales-container">
 
-        {sales?.voucher_number && (
-          <div style={styles.voucherBadge}>
-            {sales.voucher_number}
+        <header className="sales-header">
+          <div className="header-content">
+            <div className="sales-icon">SV</div>
+
+            <div>
+              <h1>Sales Voucher</h1>
+              <p>
+                Create sales voucher and automatically
+                reduce stock
+              </p>
+            </div>
+          </div>
+
+          {sales?.voucher_number && (
+            <div className="voucher-badge">
+              {sales.voucher_number}
+            </div>
+          )}
+        </header>
+
+        {(message || salesError) && (
+          <div
+            className={
+              salesError
+                ? "message error-message"
+                : "message success-message"
+            }
+          >
+            <span className="message-icon">
+              {salesError ? "!" : "✓"}
+            </span>
+            <span>{salesError || message}</span>
           </div>
         )}
-      </div>
 
-      {(message || salesError) && (
-        <div
-          style={
-            salesError
-              ? styles.error
-              : styles.success
-          }
-        >
-          {salesError || message}
-        </div>
-      )}
+        <form onSubmit={handleSubmit}>
 
-      <form onSubmit={handleSubmit}>
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            Voucher Details
-          </h2>
+          <section className="section-card">
 
-          <div style={styles.grid}>
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Voucher Date
-              </label>
+            <div className="section-heading">
+              <div className="section-number">01</div>
 
-              <input
-                type="date"
-                value={voucherDate}
-                onChange={(e) =>
-                  setVoucherDate(e.target.value)
-                }
-                style={styles.input}
-              />
+              <div>
+                <h2>Voucher Details</h2>
+                <p>Enter basic sales transaction details</p>
+              </div>
             </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Party Ledger
-              </label>
+            <div className="voucher-grid">
 
-              <select
-                value={partyLedgerId}
-                onChange={(e) =>
-                  setPartyLedgerId(e.target.value)
-                }
-                style={styles.input}
-                disabled={ledgerLoading}
-              >
-                <option value="">
-                  Select Party
-                </option>
+              <div className="field">
+                <label>Voucher Date</label>
 
-                {partyLedgers.map((ledger) => (
-                  <option
-                    key={ledger.id}
-                    value={ledger.id}
-                  >
-                    {ledger.name}
+                <input
+                  type="date"
+                  value={voucherDate}
+                  onChange={(e) =>
+                    setVoucherDate(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <label>Party Ledger</label>
+
+                <select
+                  value={partyLedgerId}
+                  onChange={(e) =>
+                    setPartyLedgerId(e.target.value)
+                  }
+                  disabled={ledgerLoading}
+                >
+                  <option value="">
+                    Select Party
                   </option>
-                ))}
-              </select>
-            </div>
 
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Sales Ledger
-              </label>
-
-              <select
-                value={salesLedgerId}
-                onChange={(e) =>
-                  setSalesLedgerId(e.target.value)
-                }
-                style={styles.input}
-                disabled={ledgerLoading}
-              >
-                <option value="">
-                  Select Sales Ledger
-                </option>
-
-                {salesLedgers.map((ledger) => (
-                  <option
-                    key={ledger.id}
-                    value={ledger.id}
-                  >
-                    {ledger.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Narration
-              </label>
-
-              <input
-                type="text"
-                value={narration}
-                onChange={(e) =>
-                  setNarration(e.target.value)
-                }
-                placeholder="Sales narration"
-                style={styles.input}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            Stock Item
-          </h2>
-
-          <div style={styles.itemGrid}>
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Item
-              </label>
-
-              <select
-                name="stockId"
-                value={item.stockId}
-                onChange={handleItemChange}
-                style={styles.input}
-                disabled={stockLoading}
-              >
-                <option value="">
-                  Select Item
-                </option>
-
-                {stocks
-                  .filter(
-                    (stock) =>
-                      Number(stock.is_active) === 1
-                  )
-                  .map((stock) => (
+                  {ledgers.map((ledger) => (
                     <option
-                      key={stock.id}
-                      value={stock.id}
+                      key={ledger.id}
+                      value={ledger.id}
                     >
-                      {stock.item_code} -{" "}
-                      {stock.item_name}
+                      {ledger.name}
                     </option>
                   ))}
-              </select>
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Sales Ledger</label>
+
+                <select
+                  value={salesLedgerId}
+                  onChange={(e) =>
+                    setSalesLedgerId(e.target.value)
+                  }
+                  disabled={ledgerLoading}
+                >
+                  <option value="">
+                    Select Sales Ledger
+                  </option>
+
+                  {ledgers.map((ledger) => (
+                    <option
+                      key={ledger.id}
+                      value={ledger.id}
+                    >
+                      {ledger.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Narration</label>
+
+                <input
+                  type="text"
+                  value={narration}
+                  onChange={(e) =>
+                    setNarration(e.target.value)
+                  }
+                  placeholder="Sales narration"
+                />
+              </div>
+
+            </div>
+          </section>
+
+          <section className="section-card">
+
+            <div className="section-heading">
+              <div className="section-number">02</div>
+
+              <div>
+                <h2>Stock Item</h2>
+                <p>
+                  Select item and enter sales quantity
+                </p>
+              </div>
             </div>
 
-            <div style={styles.stockInfo}>
-              <span style={styles.infoLabel}>
-                Unit
+            <div className="stock-grid">
+
+              <div className="field item-field">
+                <label>Stock Item</label>
+
+                <select
+                  name="stockId"
+                  value={item.stockId}
+                  onChange={handleItemChange}
+                  disabled={stockLoading}
+                >
+                  <option value="">
+                    Select Item
+                  </option>
+
+                  {stocks
+                    .filter(
+                      (stock) =>
+                        Number(stock.is_active) === 1
+                    )
+                    .map((stock) => (
+                      <option
+                        key={stock.id}
+                        value={stock.id}
+                      >
+                        {stock.item_code} -{" "}
+                        {stock.item_name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="info-box">
+                <span>Unit</span>
+                <strong>
+                  {selectedStock?.unit || "-"}
+                </strong>
+              </div>
+
+              <div className="info-box available-box">
+                <span>Available Stock</span>
+                <strong>
+                  {selectedStock?.current_qty ?? "-"}
+                </strong>
+              </div>
+
+              <div className="field">
+                <label>Quantity</label>
+
+                <input
+                  type="number"
+                  name="quantity"
+                  min="0"
+                  step="0.001"
+                  value={item.quantity}
+                  onChange={handleItemChange}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="field">
+                <label>Rate</label>
+
+                <input
+                  type="number"
+                  name="rate"
+                  min="0"
+                  step="0.01"
+                  value={item.rate}
+                  onChange={handleItemChange}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="amount-box">
+                <span>Amount</span>
+                <strong>
+                  ₹ {amount.toFixed(2)}
+                </strong>
+              </div>
+
+            </div>
+
+          </section>
+
+          <section className="total-card">
+
+            <div>
+              <span>Total Sales Amount</span>
+              <small>
+                Quantity × Sales Rate
+              </small>
+            </div>
+
+            <strong>
+              ₹ {amount.toFixed(2)}
+            </strong>
+
+          </section>
+
+          <div className="action-area">
+
+            <button
+              type="submit"
+              className="save-button"
+              disabled={salesLoading}
+            >
+              <span>
+                {salesLoading ? "..." : "✓"}
               </span>
 
-              <strong>
-                {selectedStock?.unit || "-"}
-              </strong>
-            </div>
+              {salesLoading
+                ? "Saving Sales..."
+                : "Save Sales"}
+            </button>
 
-            <div style={styles.stockInfo}>
-              <span style={styles.infoLabel}>
-                Available
-              </span>
+            <button
+              type="button"
+              className="reset-button"
+              onClick={handleReset}
+            >
+              Reset
+            </button>
 
-              <strong>
-               {selectedStock?.current_qty ?? "-"}
-              </strong>
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Quantity
-              </label>
-
-              <input
-                type="number"
-                name="quantity"
-                min="0"
-                step="0.001"
-                value={item.quantity}
-                onChange={handleItemChange}
-                style={styles.input}
-                placeholder="0"
-              />
-            </div>
-
-            <div style={styles.field}>
-              <label style={styles.label}>
-                Rate
-              </label>
-
-              <input
-                type="number"
-                name="rate"
-                min="0"
-                step="0.01"
-                value={item.rate}
-                onChange={handleItemChange}
-                style={styles.input}
-                placeholder="0.00"
-              />
-            </div>
-
-            <div style={styles.amountBox}>
-              <span style={styles.infoLabel}>
-                Amount
-              </span>
-
-              <strong>
-                ₹{amount.toFixed(2)}
-              </strong>
-            </div>
           </div>
-        </div>
 
-        <div style={styles.totalCard}>
-          <span>Total Sales Amount</span>
+        </form>
 
-          <strong>
-            ₹{amount.toFixed(2)}
-          </strong>
-        </div>
+      </main>
 
-        <div style={styles.actions}>
-          <button
-            type="submit"
-            style={styles.saveButton}
-            disabled={salesLoading}
-          >
-            {salesLoading
-              ? "Saving..."
-              : "Save Sales"}
-          </button>
+      <style>{`
 
-          <button
-            type="button"
-            style={styles.resetButton}
-            onClick={handleReset}
-          >
-            Reset
-          </button>
-        </div>
-      </form>
+        * { box-sizing: border-box; }
+
+        .sales-page { min-height: 100vh; padding: 24px; background: #07111f; color: #e8f1f7; font-family: Arial, sans-serif; position: relative; }
+
+.sales-bg { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(700px at 10% 0%, rgba(35, 126, 184, 0.12), transparent), radial-gradient(600px at 90% 100%, rgba(20, 184, 166, 0.06), transparent); }
+.sales-container { position: relative; max-width: 1180px; width: 100%; margin: 0 auto; }
+.sales-header { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; margin-bottom: 18px; background: linear-gradient(100deg, #0c1c31, #183d82); border: 1px solid #3c83b7; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+.header-content { display: flex; align-items: center; gap: 14px; }
+.sales-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #19b6dc; color: #061522; border-radius: 8px; font-size: 16px; font-weight: 900; box-shadow: 0 5px 18px rgba(25, 182, 220, 0.2); }
+.sales-header h1 { margin: 0; color: #f7fbff; font-size: 25px; font-weight: 800; }
+.sales-header p { margin: 5px 0 0; color: #a9d0e7; font-size: 12px; }
+
+.voucher-badge { padding: 10px 16px; background: #0d293d; border: 1px solid #35c1e8; border-radius: 6px; color: #55d2f4; font-family: Consolas, monospace; font-size: 13px; font-weight: 900; }
+
+.message { display: flex; align-items: center; gap: 10px; padding: 12px 15px; margin-bottom: 18px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+
+.success-message { background: #0a3028; border: 1px solid #19826b; color: #63ddc0; }
+
+.error-message { background: #39171c; border: 1px solid #8d333e; color: #ff919b; }
+
+.message-icon { width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); font-size: 11px; }
+
+.section-card { padding: 20px; margin-bottom: 18px; background: #0d1c35; border: 1px solid #285a82; border-radius: 10px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
+
+        .section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+
+.section-number { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #123d63; border: 1px solid #267ba7; border-radius: 6px; color: #53c8ee; font-family: Consolas, monospace; font-size: 10px; font-weight: 900; }
+
+.section-heading h2 { margin: 0; color: #a8d2ff; font-size: 20px; font-weight: 700; }
+
+.section-heading p { margin: 3px 0 0; color: #668199; font-size: 10px; }
+
+.voucher-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+.stock-grid { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.9fr 0.9fr 1.1fr; gap: 12px; align-items: end; }
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.field label, .info-box span, .amount-box span { color: #86a6c0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+
+.field input, .field select { width: 100%; height: 43px; padding: 0 12px; background: #081329; color: #e7f0f7; border: 1px solid #304964; border-radius: 5px; outline: none; font-size: 12px; font-family: Arial, sans-serif; }
+
+.field input::placeholder { color: #40556a; }
+
+.field input:focus, .field select:focus { border-color: #29a9d4; box-shadow: 0 0 0 2px rgba(41, 169, 212, 0.08); }
+
+.field select option { background: #0b172a; color: white; }
+
+.field input:disabled, .field select:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.info-box, .amount-box { min-width: 0; height: 69px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 10px 12px; background: #09172a; border: 1px solid #263e55; border-radius: 5px; }
+
+.info-box strong { color: #d9e7f1; font-family: Consolas, monospace; font-size: 14px; }
+
+.available-box { border-color: #236a79; background: #09202b; }
+
+.available-box strong { color: #45d1c3; }
+
+.amount-box { border-color: #2387a5; background: #0b2638; }
+
+.amount-box strong { color: #51cdef; font-family: Consolas, monospace; font-size: 16px; }
+
+.total-card { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 20px; margin-bottom: 18px; background: linear-gradient(100deg, #123474, #1c438f); border: 1px solid #4b8bc0; border-radius: 8px; }
+
+        .total-card span { display: block; color: #f0f7ff; font-size: 15px; font-weight: 700; }
+
+.total-card small { display: block; margin-top: 4px; color: #86acd0; font-size: 9px; }
+
+.total-card strong { color: #ffffff; font-family: Consolas, monospace; font-size: 19px; font-weight: 900; }
+
+.action-area { display: flex; align-items: center; gap: 9px; }
+
+.save-button, .reset-button { min-height: 43px; padding: 0 20px; border-radius: 6px; border: none; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.15s ease; }
+
+.save-button { display: flex; align-items: center; gap: 8px; background: #10afd1; color: #04131c; }
+
+.save-button:hover { background: #25c3e4; transform: translateY(-1px); }
+
+.save-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.save-button span { font-size: 12px; font-weight: 900; }
+
+.reset-button { background: #35475e; color: #d6e1eb; }
+
+.reset-button:hover { background: #465c75; }
+
+@media (max-width: 1050px) { .voucher-grid { grid-template-columns: repeat(2, 1fr); } .stock-grid { grid-template-columns: repeat(3, 1fr); } .item-field { grid-column: span 3; } }
+
+@media (max-width: 700px) { .sales-page { padding: 14px; } .sales-header { align-items: flex-start; flex-direction: column; } .voucher-badge { width: 100%; } .voucher-grid, .stock-grid { grid-template-columns: 1fr; } .item-field { grid-column: auto; } .section-card { padding: 15px; } .total-card { align-items: flex-start; flex-direction: column; } .total-card strong { font-size: 17px; } .action-area { width: 100%; } .save-button, .reset-button { flex: 1; } }
+
+@media (max-width: 450px) { .sales-page { padding: 10px; } .sales-header { padding: 15px; } .sales-header h1 { font-size: 20px; } .sales-icon { width: 44px; height: 44px; } .section-heading h2 { font-size: 17px; } }
+
+      `}</style>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "#0b122e",
-    color: "white",
-    padding: "20px",
-    fontFamily: "Arial",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background:
-      "linear-gradient(90deg, #0b122e, #1e3a8a)",
-    border: "1px solid #60a5fa",
-    borderRadius: "10px",
-    padding: "20px",
-    marginBottom: "20px",
-  },
-
-  title: {
-    margin: 0,
-    fontSize: "28px",
-  },
-
-  subtitle: {
-    margin: "6px 0 0",
-    color: "#bfdbfe",
-  },
-
-  voucherBadge: {
-    background: "#06b6d4",
-    padding: "10px 16px",
-    borderRadius: "6px",
-    fontWeight: "bold",
-  },
-
-  success: {
-    background: "#14532d",
-    border: "1px solid #22c55e",
-    padding: "12px",
-    borderRadius: "6px",
-    marginBottom: "15px",
-  },
-
-  error: {
-    background: "#7f1d1d",
-    border: "1px solid #ef4444",
-    padding: "12px",
-    borderRadius: "6px",
-    marginBottom: "15px",
-  },
-
-  card: {
-    background: "#131d42",
-    border: "1px solid #60a5fa",
-    borderRadius: "10px",
-    padding: "20px",
-    marginBottom: "20px",
-  },
-
-  sectionTitle: {
-    marginTop: 0,
-    color: "#93c5fd",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "15px",
-  },
-
-  itemGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "2fr 1fr 1fr 1fr 1fr 1fr",
-    gap: "15px",
-    alignItems: "end",
-  },
-
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-
-  label: {
-    color: "#bfdbfe",
-    fontSize: "14px",
-  },
-
-  input: {
-    width: "100%",
-    boxSizing: "border-box",
-    background: "#0b122e",
-    color: "white",
-    border: "1px solid #475569",
-    borderRadius: "5px",
-    padding: "10px",
-    outline: "none",
-  },
-
-  stockInfo: {
-    background: "#0b122e",
-    border: "1px solid #334155",
-    borderRadius: "5px",
-    padding: "10px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    minHeight: "42px",
-  },
-
-  infoLabel: {
-    color: "#94a3b8",
-    fontSize: "12px",
-  },
-
-  amountBox: {
-    background: "#172554",
-    border: "1px solid #22d3ee",
-    borderRadius: "5px",
-    padding: "10px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-    minHeight: "42px",
-  },
-
-  totalCard: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background: "#1e3a8a",
-    border: "1px solid #60a5fa",
-    borderRadius: "8px",
-    padding: "16px 20px",
-    fontSize: "18px",
-    marginBottom: "20px",
-  },
-
-  actions: {
-    display: "flex",
-    gap: "10px",
-  },
-
-  saveButton: {
-    background: "#06b6d4",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    padding: "11px 22px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  resetButton: {
-    background: "#475569",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    padding: "11px 22px",
-    cursor: "pointer",
-  },
-};

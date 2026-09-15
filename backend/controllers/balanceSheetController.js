@@ -42,6 +42,22 @@ const getBalanceSheet = async (req, res) => {
       return null;
     };
 
+    const getMainGroup = (groupId) => {
+      let current = groupMap[groupId];
+      let depth = 0;
+
+      while (
+        current &&
+        current.parent_id &&
+        depth < 20
+      ) {
+        current = groupMap[current.parent_id];
+        depth++;
+      }
+
+      return current;
+    };
+
     const getGroupChain = (groupId) => {
       const names = [];
       let current = groupMap[groupId];
@@ -82,8 +98,8 @@ const getBalanceSheet = async (req, res) => {
       ledger.credit += Number(entry.credit || 0);
     });
 
-    const liabilities = [];
-    const assets = [];
+    const assetGroups = {};
+    const liabilityGroups = {};
 
     let directIncome = 0;
     let indirectIncome = 0;
@@ -99,43 +115,64 @@ const getBalanceSheet = async (req, res) => {
 
       const natureId = getNature(ledger.group_id);
       const groupChain = getGroupChain(ledger.group_id);
+      const mainGroup = getMainGroup(ledger.group_id);
+
+      if (!mainGroup) return;
+
+      const mainGroupId = mainGroup.id;
+      const mainGroupName = mainGroup.name;
 
       if (natureId === 3) {
         const amount = credit - debit;
 
         if (amount <= 0) return;
 
-        liabilities.push({
-          id: ledger.id,
-          name: ledger.name,
-          amount,
-          isPnl: false,
-        });
+        if (!liabilityGroups[mainGroupId]) {
+          liabilityGroups[mainGroupId] = {
+            id: mainGroupId,
+            name: mainGroupName,
+            amount: 0,
+            isPnl: false,
+          };
+        }
+
+        liabilityGroups[mainGroupId].amount += amount;
 
         return;
       }
 
       if (natureId === 1 || natureId === 2) {
-  const amount = debit - credit;
+        const amount = debit - credit;
 
-  if (amount > 0) {
-    assets.push({
-      id: ledger.id,
-      name: ledger.name,
-      amount,
-      isPnl: false,
-    });
-  } else if (amount < 0) {
-    liabilities.push({
-      id: ledger.id,
-      name: ledger.name,
-      amount: Math.abs(amount),
-      isPnl: false,
-    });
-  }
+        if (amount > 0) {
+          if (!assetGroups[mainGroupId]) {
+            assetGroups[mainGroupId] = {
+              id: mainGroupId,
+              name: mainGroupName,
+              amount: 0,
+              isPnl: false,
+            };
+          }
 
-  return;
-}
+          assetGroups[mainGroupId].amount += amount;
+        } else if (amount < 0) {
+          const liabilityAmount = Math.abs(amount);
+
+          if (!liabilityGroups[mainGroupId]) {
+            liabilityGroups[mainGroupId] = {
+              id: mainGroupId,
+              name: mainGroupName,
+              amount: 0,
+              isPnl: false,
+            };
+          }
+
+          liabilityGroups[mainGroupId].amount +=
+            liabilityAmount;
+        }
+
+        return;
+      }
 
       if (natureId === 4) {
         const amount = credit - debit;
@@ -186,12 +223,12 @@ const getBalanceSheet = async (req, res) => {
         totalExpense,
       };
 
-      liabilities.push({
+      liabilityGroups["pnl-profit"] = {
         name: "Profit & Loss A/c",
         amount: netProfit,
         isPnl: true,
         type: "Profit",
-      });
+      };
     }
 
     if (netProfit < 0) {
@@ -204,21 +241,29 @@ const getBalanceSheet = async (req, res) => {
         totalExpense,
       };
 
-      assets.push({
+      assetGroups["pnl-loss"] = {
         name: "Profit & Loss A/c",
         amount: loss,
         isPnl: true,
         type: "Loss",
-      });
+      };
     }
 
+    const liabilities = Object.values(
+      liabilityGroups
+    );
+
+    const assets = Object.values(assetGroups);
+
     const totalLiabilities = liabilities.reduce(
-      (total, item) => total + Number(item.amount || 0),
+      (total, item) =>
+        total + Number(item.amount || 0),
       0
     );
 
     const totalAssets = assets.reduce(
-      (total, item) => total + Number(item.amount || 0),
+      (total, item) =>
+        total + Number(item.amount || 0),
       0
     );
 
@@ -247,7 +292,10 @@ const getVouchersByLedger = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id || Number.isNaN(Number(id))) {
+    if (
+      !id ||
+      Number.isNaN(Number(id))
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid ledger ID",
@@ -289,7 +337,9 @@ const getVoucherDetail = async (req, res) => {
     }
 
     const data =
-      await model.getVoucherFullDetail(voucherId);
+      await model.getVoucherFullDetail(
+        voucherId
+      );
 
     return res.json({
       success: true,

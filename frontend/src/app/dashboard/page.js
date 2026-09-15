@@ -145,7 +145,6 @@ export default function Dashboard() {
             <div>
               <div className="title-row">
                 <h1>Accounts Dashboard</h1>
-                <span className="status-badge">ACCOUNTING SYSTEM</span>
               </div>
 
               <p>
@@ -153,26 +152,7 @@ export default function Dashboard() {
                 from one place
               </p>
             </div>
-
-            <div className="module-count">
-              <span>{totalModules}</span>
-              <small>MODULES</small>
-            </div>
           </header>
-
-          <section className="welcome-card">
-            <div className="welcome-icon">
-              AC
-            </div>
-
-            <div>
-              <h2>Welcome to Accounts Management</h2>
-              <p>
-                Select any module below to create transactions or view
-                financial information.
-              </p>
-            </div>
-          </section>
 
           {menuSections.map((section) => (
             <section className="module-section" key={section.title}>
@@ -181,10 +161,6 @@ export default function Dashboard() {
                 <div className="section-line"></div>
 
                 <h2>{section.title}</h2>
-
-                <span>
-                  {section.items.length} MODULES
-                </span>
               </div>
 
               <div className="module-grid">
@@ -202,10 +178,6 @@ export default function Dashboard() {
                       <h3>{item.name}</h3>
 
                       <p>{item.desc}</p>
-                    </div>
-
-                    <div className="arrow">
-                      →
                     </div>
                   </Link>
                 ))}

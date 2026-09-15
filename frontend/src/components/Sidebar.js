@@ -20,10 +20,10 @@ export default function Sidebar() {
       title: "TRANSACTIONS",
       items: [
         { name: "Journal Voucher", path: "/journal" },
-        { name: "Sales", path: "/sales" },
-        { name: "Purchase", path: "/purchase" },
-        { name: "Receipt", path: "/receipt" },
-        { name: "Payment", path: "/payment" },
+        { name: "Sales Voucher", path: "/sales" },
+        { name: "Purchase Voucher", path: "/purchase" },
+        { name: "Receipt Voucher", path: "/receipt" },
+        { name: "Payment Voucher", path: "/payment" },
         { name: "Stock", path: "/stock" },
       ],
     },
@@ -76,14 +76,6 @@ export default function Sidebar() {
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="sidebar-footer">
-        <div className="footer-status"></div>
-        <div className="footer-content">
-          <strong>Accounts Management</strong>
-          <span>© 2026 Accounts</span>
-        </div>
       </div>
 
       <style>{`

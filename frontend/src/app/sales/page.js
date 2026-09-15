@@ -5,14 +5,19 @@ import { useDispatch, useSelector } from "react-redux";
 import { createSales } from "../../store/slices/salesSlice";
 import { fetchStocks } from "../../store/slices/stockSlice";
 
-const emptyItem = { stockId: "", quantity: "", rate: "" };
+const emptyItem = {
+  stockId: "",
+  quantity: "",
+  rate: "",
+};
 
 export default function SalesPage() {
   const dispatch = useDispatch();
 
-  const { stocks, loading: stockLoading } = useSelector(
-    (state) => state.stock
-  );
+  const {
+    stocks,
+    loading: stockLoading,
+  } = useSelector((state) => state.stock);
 
   const {
     loading: salesLoading,
@@ -60,18 +65,87 @@ export default function SalesPage() {
     }
   };
 
+  const partyLedgers = useMemo(() => {
+    return ledgers.filter((ledger) => {
+      const name = String(
+        ledger.name || ""
+      ).toLowerCase();
+
+      const group = String(
+        ledger.group_name || ""
+      ).toLowerCase();
+
+      const parent = String(
+        ledger.parent_name || ""
+      ).toLowerCase();
+
+      const nature = String(
+        ledger.nature_name || ""
+      ).toLowerCase();
+
+      return (
+        name.includes("cash") ||
+        name.includes("customer") ||
+        name.includes("debtor") ||
+        group.includes("cash") ||
+        group.includes("bank") ||
+        group.includes("sundry debtor") ||
+        parent.includes("cash") ||
+        parent.includes("bank") ||
+        parent.includes("sundry debtor") ||
+        nature.includes("asset") &&
+          (
+            name.includes("customer") ||
+            name.includes("cash") ||
+            name.includes("bank") ||
+            name.includes("debtor")
+          )
+      );
+    });
+  }, [ledgers]);
+
+  const salesLedgers = useMemo(() => {
+    return ledgers.filter((ledger) => {
+      const name = String(
+        ledger.name || ""
+      ).toLowerCase();
+
+      const group = String(
+        ledger.group_name || ""
+      ).toLowerCase();
+
+      const parent = String(
+        ledger.parent_name || ""
+      ).toLowerCase();
+
+      return (
+        group.includes("sales account") ||
+        group === "sales" ||
+        parent.includes("sales account") ||
+        parent === "sales" ||
+        name.includes("sales revenue") ||
+        name.includes("product sales")
+      );
+    });
+  }, [ledgers]);
+
   const selectedStock = useMemo(
     () =>
       stocks.find(
         (stock) =>
-          Number(stock.id) === Number(item.stockId)
+          Number(stock.id) ===
+          Number(item.stockId)
       ),
     [stocks, item.stockId]
   );
 
   const amount = useMemo(() => {
-    const quantity = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
+    const quantity =
+      Number(item.quantity || 0);
+
+    const rate =
+      Number(item.rate || 0);
+
     return quantity * rate;
   }, [item.quantity, item.rate]);
 
@@ -80,7 +154,8 @@ export default function SalesPage() {
 
     if (name === "stockId") {
       const stock = stocks.find(
-        (row) => Number(row.id) === Number(value)
+        (row) =>
+          Number(row.id) === Number(value)
       );
 
       setItem({
@@ -108,36 +183,56 @@ export default function SalesPage() {
     }
 
     if (!partyLedgerId) {
-      setMessage("Please select party ledger");
+      setMessage(
+        "Please select party ledger"
+      );
       return;
     }
 
     if (!salesLedgerId) {
-      setMessage("Please select sales ledger");
+      setMessage(
+        "Please select sales ledger"
+      );
       return;
     }
 
     if (!item.stockId) {
-      setMessage("Please select a stock item");
+      setMessage(
+        "Please select a stock item"
+      );
       return;
     }
 
-    const quantity = Number(item.quantity);
-    const rate = Number(item.rate);
+    const quantity =
+      Number(item.quantity);
 
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      setMessage("Quantity must be greater than zero");
+    const rate =
+      Number(item.rate);
+
+    if (
+      !Number.isFinite(quantity) ||
+      quantity <= 0
+    ) {
+      setMessage(
+        "Quantity must be greater than zero"
+      );
       return;
     }
 
-    if (!Number.isFinite(rate) || rate < 0) {
-      setMessage("Rate cannot be negative");
+    if (
+      !Number.isFinite(rate) ||
+      rate < 0
+    ) {
+      setMessage(
+        "Rate cannot be negative"
+      );
       return;
     }
 
     if (
       selectedStock &&
-      quantity > Number(selectedStock.current_qty)
+      quantity >
+        Number(selectedStock.current_qty)
     ) {
       setMessage(
         `Insufficient stock. Available: ${selectedStock.current_qty} ${selectedStock.unit || ""}`
@@ -147,8 +242,10 @@ export default function SalesPage() {
 
     const salesData = {
       voucherDate,
-      partyLedgerId: Number(partyLedgerId),
-      salesLedgerId: Number(salesLedgerId),
+      partyLedgerId:
+        Number(partyLedgerId),
+      salesLedgerId:
+        Number(salesLedgerId),
       narration,
       items: [
         {
@@ -163,7 +260,9 @@ export default function SalesPage() {
       createSales(salesData)
     );
 
-    if (createSales.fulfilled.match(result)) {
+    if (
+      createSales.fulfilled.match(result)
+    ) {
       setMessage(
         `Sales voucher ${result.payload.voucher_number} created successfully`
       );
@@ -190,13 +289,15 @@ export default function SalesPage() {
 
         <header className="sales-header">
           <div className="header-content">
-            <div className="sales-icon">SV</div>
+            <div className="sales-icon">
+              SV
+            </div>
 
             <div>
               <h1>Sales Voucher</h1>
               <p>
-                Create sales voucher and automatically
-                reduce stock
+                Create sales voucher and
+                automatically reduce stock
               </p>
             </div>
           </div>
@@ -219,7 +320,10 @@ export default function SalesPage() {
             <span className="message-icon">
               {salesError ? "!" : "✓"}
             </span>
-            <span>{salesError || message}</span>
+
+            <span>
+              {salesError || message}
+            </span>
           </div>
         )}
 
@@ -228,86 +332,118 @@ export default function SalesPage() {
           <section className="section-card">
 
             <div className="section-heading">
-              <div className="section-number">01</div>
+              <div className="section-number">
+                01
+              </div>
 
               <div>
-                <h2>Voucher Details</h2>
-                <p>Enter basic sales transaction details</p>
+                <h2>
+                  Voucher Details
+                </h2>
+
+                <p>
+                  Enter basic sales
+                  transaction details
+                </p>
               </div>
             </div>
 
             <div className="voucher-grid">
 
               <div className="field">
-                <label>Voucher Date</label>
+                <label>
+                  Voucher Date
+                </label>
 
                 <input
                   type="date"
                   value={voucherDate}
                   onChange={(e) =>
-                    setVoucherDate(e.target.value)
+                    setVoucherDate(
+                      e.target.value
+                    )
                   }
                 />
               </div>
 
               <div className="field">
-                <label>Party Ledger</label>
+                <label>
+                  Party Ledger
+                </label>
 
                 <select
                   value={partyLedgerId}
                   onChange={(e) =>
-                    setPartyLedgerId(e.target.value)
+                    setPartyLedgerId(
+                      e.target.value
+                    )
                   }
                   disabled={ledgerLoading}
                 >
                   <option value="">
-                    Select Party
+                    {ledgerLoading
+                      ? "Loading..."
+                      : "Select Party"}
                   </option>
 
-                  {ledgers.map((ledger) => (
-                    <option
-                      key={ledger.id}
-                      value={ledger.id}
-                    >
-                      {ledger.name}
-                    </option>
-                  ))}
+                  {partyLedgers.map(
+                    (ledger) => (
+                      <option
+                        key={ledger.id}
+                        value={ledger.id}
+                      >
+                        {ledger.name}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="field">
-                <label>Sales Ledger</label>
+                <label>
+                  Sales Ledger
+                </label>
 
                 <select
                   value={salesLedgerId}
                   onChange={(e) =>
-                    setSalesLedgerId(e.target.value)
+                    setSalesLedgerId(
+                      e.target.value
+                    )
                   }
                   disabled={ledgerLoading}
                 >
                   <option value="">
-                    Select Sales Ledger
+                    {ledgerLoading
+                      ? "Loading..."
+                      : "Select Sales Ledger"}
                   </option>
 
-                  {ledgers.map((ledger) => (
-                    <option
-                      key={ledger.id}
-                      value={ledger.id}
-                    >
-                      {ledger.name}
-                    </option>
-                  ))}
+                  {salesLedgers.map(
+                    (ledger) => (
+                      <option
+                        key={ledger.id}
+                        value={ledger.id}
+                      >
+                        {ledger.name}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               <div className="field">
-                <label>Narration</label>
+                <label>
+                  Narration
+                </label>
 
                 <input
                   type="text"
                   value={narration}
                   onChange={(e) =>
-                    setNarration(e.target.value)
+                    setNarration(
+                      e.target.value
+                    )
                   }
                   placeholder="Sales narration"
                 />
@@ -319,12 +455,18 @@ export default function SalesPage() {
           <section className="section-card">
 
             <div className="section-heading">
-              <div className="section-number">02</div>
+              <div className="section-number">
+                02
+              </div>
 
               <div>
-                <h2>Stock Item</h2>
+                <h2>
+                  Stock Item
+                </h2>
+
                 <p>
-                  Select item and enter sales quantity
+                  Select item and enter
+                  sales quantity
                 </p>
               </div>
             </div>
@@ -332,7 +474,9 @@ export default function SalesPage() {
             <div className="stock-grid">
 
               <div className="field item-field">
-                <label>Stock Item</label>
+                <label>
+                  Stock Item
+                </label>
 
                 <select
                   name="stockId"
@@ -341,13 +485,17 @@ export default function SalesPage() {
                   disabled={stockLoading}
                 >
                   <option value="">
-                    Select Item
+                    {stockLoading
+                      ? "Loading..."
+                      : "Select Item"}
                   </option>
 
                   {stocks
                     .filter(
                       (stock) =>
-                        Number(stock.is_active) === 1
+                        Number(
+                          stock.is_active
+                        ) === 1
                     )
                     .map((stock) => (
                       <option
@@ -362,21 +510,32 @@ export default function SalesPage() {
               </div>
 
               <div className="info-box">
-                <span>Unit</span>
+                <span>
+                  Unit
+                </span>
+
                 <strong>
-                  {selectedStock?.unit || "-"}
+                  {selectedStock?.unit ||
+                    "-"}
                 </strong>
               </div>
 
               <div className="info-box available-box">
-                <span>Available Stock</span>
+                <span>
+                  Available Stock
+                </span>
+
                 <strong>
-                  {selectedStock?.current_qty ?? "-"}
+                  {selectedStock
+                    ?.current_qty ??
+                    "-"}
                 </strong>
               </div>
 
               <div className="field">
-                <label>Quantity</label>
+                <label>
+                  Quantity
+                </label>
 
                 <input
                   type="number"
@@ -390,7 +549,9 @@ export default function SalesPage() {
               </div>
 
               <div className="field">
-                <label>Rate</label>
+                <label>
+                  Rate
+                </label>
 
                 <input
                   type="number"
@@ -404,20 +565,25 @@ export default function SalesPage() {
               </div>
 
               <div className="amount-box">
-                <span>Amount</span>
+                <span>
+                  Amount
+                </span>
+
                 <strong>
                   ₹ {amount.toFixed(2)}
                 </strong>
               </div>
 
             </div>
-
           </section>
 
           <section className="total-card">
 
             <div>
-              <span>Total Sales Amount</span>
+              <span>
+                Total Sales Amount
+              </span>
+
               <small>
                 Quantity × Sales Rate
               </small>
@@ -437,7 +603,9 @@ export default function SalesPage() {
               disabled={salesLoading}
             >
               <span>
-                {salesLoading ? "..." : "✓"}
+                {salesLoading
+                  ? "..."
+                  : "✓"}
               </span>
 
               {salesLoading
@@ -456,24 +624,29 @@ export default function SalesPage() {
           </div>
 
         </form>
-
       </main>
 
       <style>{`
 
-        * { box-sizing: border-box; }
+* { box-sizing: border-box; }
 
-        .sales-page { min-height: 100vh; padding: 24px; background: #07111f; color: #e8f1f7; font-family: Arial, sans-serif; position: relative; }
+.sales-page { min-height: 100vh; padding: 24px; background: #07111f; color: #e8f1f7; font-family: Arial, sans-serif; position: relative; }
 
-.sales-bg { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(700px at 10% 0%, rgba(35, 126, 184, 0.12), transparent), radial-gradient(600px at 90% 100%, rgba(20, 184, 166, 0.06), transparent); }
+.sales-bg { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(700px at 10% 0%, rgba(35,126,184,.12), transparent), radial-gradient(600px at 90% 100%, rgba(20,184,166,.06), transparent); }
+
 .sales-container { position: relative; max-width: 1180px; width: 100%; margin: 0 auto; }
-.sales-header { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; margin-bottom: 18px; background: linear-gradient(100deg, #0c1c31, #183d82); border: 1px solid #3c83b7; border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+
+.sales-header { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; margin-bottom: 18px; background: linear-gradient(100deg,#0c1c31,#183d82); border: 1px solid #3c83b7; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.28); }
+
 .header-content { display: flex; align-items: center; gap: 14px; }
-.sales-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #19b6dc; color: #061522; border-radius: 8px; font-size: 16px; font-weight: 900; box-shadow: 0 5px 18px rgba(25, 182, 220, 0.2); }
+
+.sales-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #19b6dc; color: #061522; border-radius: 8px; font-size: 16px; font-weight: 900; }
+
 .sales-header h1 { margin: 0; color: #f7fbff; font-size: 25px; font-weight: 800; }
+
 .sales-header p { margin: 5px 0 0; color: #a9d0e7; font-size: 12px; }
 
-.voucher-badge { padding: 10px 16px; background: #0d293d; border: 1px solid #35c1e8; border-radius: 6px; color: #55d2f4; font-family: Consolas, monospace; font-size: 13px; font-weight: 900; }
+.voucher-badge { padding: 10px 16px; background: #0d293d; border: 1px solid #35c1e8; border-radius: 6px; color: #55d2f4; font-family: Consolas,monospace; font-size: 13px; font-weight: 900; }
 
 .message { display: flex; align-items: center; gap: 10px; padding: 12px 15px; margin-bottom: 18px; border-radius: 7px; font-size: 12px; font-weight: 700; }
 
@@ -481,39 +654,39 @@ export default function SalesPage() {
 
 .error-message { background: #39171c; border: 1px solid #8d333e; color: #ff919b; }
 
-.message-icon { width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.08); font-size: 11px; }
+.message-icon { width: 21px; height: 21px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: rgba(255,255,255,.08); font-size: 11px; }
 
-.section-card { padding: 20px; margin-bottom: 18px; background: #0d1c35; border: 1px solid #285a82; border-radius: 10px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
+.section-card { padding: 20px; margin-bottom: 18px; background: #0d1c35; border: 1px solid #285a82; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,.2); }
 
-        .section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
+.section-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
 
-.section-number { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #123d63; border: 1px solid #267ba7; border-radius: 6px; color: #53c8ee; font-family: Consolas, monospace; font-size: 10px; font-weight: 900; }
+.section-number { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: #123d63; border: 1px solid #267ba7; border-radius: 6px; color: #53c8ee; font-family: Consolas,monospace; font-size: 10px; font-weight: 900; }
 
 .section-heading h2 { margin: 0; color: #a8d2ff; font-size: 20px; font-weight: 700; }
 
 .section-heading p { margin: 3px 0 0; color: #668199; font-size: 10px; }
 
-.voucher-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.voucher-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
 
-.stock-grid { display: grid; grid-template-columns: 2fr 0.8fr 1fr 0.9fr 0.9fr 1.1fr; gap: 12px; align-items: end; }
+.stock-grid { display: grid; grid-template-columns: 2fr .8fr 1fr .9fr .9fr 1.1fr; gap: 12px; align-items: end; }
 
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
-.field label, .info-box span, .amount-box span { color: #86a6c0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.field label,.info-box span,.amount-box span { color: #86a6c0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
 
-.field input, .field select { width: 100%; height: 43px; padding: 0 12px; background: #081329; color: #e7f0f7; border: 1px solid #304964; border-radius: 5px; outline: none; font-size: 12px; font-family: Arial, sans-serif; }
+.field input,.field select { width: 100%; height: 43px; padding: 0 12px; background: #081329; color: #e7f0f7; border: 1px solid #304964; border-radius: 5px; outline: none; font-size: 12px; font-family: Arial,sans-serif; }
 
 .field input::placeholder { color: #40556a; }
 
-.field input:focus, .field select:focus { border-color: #29a9d4; box-shadow: 0 0 0 2px rgba(41, 169, 212, 0.08); }
+.field input:focus,.field select:focus { border-color: #29a9d4; box-shadow: 0 0 0 2px rgba(41,169,212,.08); }
 
 .field select option { background: #0b172a; color: white; }
 
-.field input:disabled, .field select:disabled { opacity: 0.55; cursor: not-allowed; }
+.field input:disabled,.field select:disabled { opacity: .55; cursor: not-allowed; }
 
-.info-box, .amount-box { min-width: 0; height: 69px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 10px 12px; background: #09172a; border: 1px solid #263e55; border-radius: 5px; }
+.info-box,.amount-box { min-width: 0; height: 69px; display: flex; flex-direction: column; justify-content: center; gap: 7px; padding: 10px 12px; background: #09172a; border: 1px solid #263e55; border-radius: 5px; }
 
-.info-box strong { color: #d9e7f1; font-family: Consolas, monospace; font-size: 14px; }
+.info-box strong { color: #d9e7f1; font-family: Consolas,monospace; font-size: 14px; }
 
 .available-box { border-color: #236a79; background: #09202b; }
 
@@ -521,37 +694,35 @@ export default function SalesPage() {
 
 .amount-box { border-color: #2387a5; background: #0b2638; }
 
-.amount-box strong { color: #51cdef; font-family: Consolas, monospace; font-size: 16px; }
+.amount-box strong { color: #51cdef; font-family: Consolas,monospace; font-size: 16px; }
 
-.total-card { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 20px; margin-bottom: 18px; background: linear-gradient(100deg, #123474, #1c438f); border: 1px solid #4b8bc0; border-radius: 8px; }
+.total-card { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 20px; margin-bottom: 18px; background: linear-gradient(100deg,#123474,#1c438f); border: 1px solid #4b8bc0; border-radius: 8px; }
 
-        .total-card span { display: block; color: #f0f7ff; font-size: 15px; font-weight: 700; }
+.total-card span { display: block; color: #f0f7ff; font-size: 15px; font-weight: 700; }
 
 .total-card small { display: block; margin-top: 4px; color: #86acd0; font-size: 9px; }
 
-.total-card strong { color: #ffffff; font-family: Consolas, monospace; font-size: 19px; font-weight: 900; }
+.total-card strong { color: #fff; font-family: Consolas,monospace; font-size: 19px; font-weight: 900; }
 
 .action-area { display: flex; align-items: center; gap: 9px; }
 
-.save-button, .reset-button { min-height: 43px; padding: 0 20px; border-radius: 6px; border: none; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.15s ease; }
+.save-button,.reset-button { min-height: 43px; padding: 0 20px; border-radius: 6px; border: none; font-size: 12px; font-weight: 800; cursor: pointer; transition: .15s ease; }
 
 .save-button { display: flex; align-items: center; gap: 8px; background: #10afd1; color: #04131c; }
 
 .save-button:hover { background: #25c3e4; transform: translateY(-1px); }
 
-.save-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-.save-button span { font-size: 12px; font-weight: 900; }
+.save-button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
 .reset-button { background: #35475e; color: #d6e1eb; }
 
 .reset-button:hover { background: #465c75; }
 
-@media (max-width: 1050px) { .voucher-grid { grid-template-columns: repeat(2, 1fr); } .stock-grid { grid-template-columns: repeat(3, 1fr); } .item-field { grid-column: span 3; } }
+@media (max-width:1050px) { .voucher-grid { grid-template-columns: repeat(2,1fr); } .stock-grid { grid-template-columns: repeat(3,1fr); } .item-field { grid-column: span 3; } }
 
-@media (max-width: 700px) { .sales-page { padding: 14px; } .sales-header { align-items: flex-start; flex-direction: column; } .voucher-badge { width: 100%; } .voucher-grid, .stock-grid { grid-template-columns: 1fr; } .item-field { grid-column: auto; } .section-card { padding: 15px; } .total-card { align-items: flex-start; flex-direction: column; } .total-card strong { font-size: 17px; } .action-area { width: 100%; } .save-button, .reset-button { flex: 1; } }
+@media (max-width:700px) { .sales-page { padding: 14px; } .sales-header { align-items: flex-start; flex-direction: column; } .voucher-badge { width: 100%; } .voucher-grid,.stock-grid { grid-template-columns: 1fr; } .item-field { grid-column: auto; } .section-card { padding: 15px; } .total-card { align-items: flex-start; flex-direction: column; } .action-area { width: 100%; } .save-button,.reset-button { flex: 1; } }
 
-@media (max-width: 450px) { .sales-page { padding: 10px; } .sales-header { padding: 15px; } .sales-header h1 { font-size: 20px; } .sales-icon { width: 44px; height: 44px; } .section-heading h2 { font-size: 17px; } }
+@media (max-width:450px) { .sales-page { padding: 10px; } .sales-header { padding: 15px; } .sales-header h1 { font-size: 20px; } .sales-icon { width: 44px; height: 44px; } .section-heading h2 { font-size: 17px; } }
 
       `}</style>
     </div>
